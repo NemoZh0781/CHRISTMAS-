@@ -1,0 +1,2374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071628">
+  <meta name="description" content="An animated Christmas night with northern lights, a tree made of stardust, and fireworks you can launch.">
+  <title>Aurora Christmas</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ice: #edf7ff;
+      --mist: #b8cde3;
+      --gold: #ffe9b4;
+      --serif: Georgia, 'Times New Roman', serif;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #071321;
+      color: var(--ice);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; }
+    button { font: inherit; color: inherit; }
+    button:focus-visible { outline: 2px solid #ffffe7; outline-offset: 4px; }
+
+    .theater {
+      position: relative;
+      isolation: isolate;
+      height: 100vh;
+      height: 100svh;
+      min-height: 390px;
+      overflow: hidden;
+      background: radial-gradient(ellipse at 62% 14%, #153b42, transparent 52%), #081526;
+    }
+
+    .scene, .scene-world, .scene canvas, .shade {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .scene { z-index: -1; }
+    .scene-world { transform-origin: 0 0; }
+    .scene.is-flying .scene-world { will-change: transform; }
+    .shade, #sky, #fireworks, #flight-dust { pointer-events: none; }
+    .shade {
+      background:
+        linear-gradient(90deg, #050e1e80, transparent 38%),
+        linear-gradient(180deg, #0308148c 0%, transparent 18% 72%, #0308119c 100%);
+    }
+
+    #tree { cursor: grab; touch-action: pan-y; }
+    #tree:active { cursor: grabbing; }
+
+    .bar {
+      position: absolute;
+      inset: 0 0 auto;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: clamp(18px, 3.9vh, 35px) clamp(22px, 5vw, 78px);
+      pointer-events: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      font-size: .9375rem;
+      font-weight: 500;
+      letter-spacing: .15em;
+      white-space: nowrap;
+      text-shadow: 0 2px 12px #041426;
+    }
+
+    .brand-mark { color: var(--gold); font-size: 1.65rem; text-shadow: 0 0 18px #ffe0a690; line-height: 1; }
+    .bar-controls, .actions { display: flex; align-items: center; gap: 8px; pointer-events: auto; }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 43px;
+      padding: 8px 14px;
+      border: 1px solid #c4e6ff36;
+      border-radius: 999px;
+      background: #0a1928ba;
+      color: #e8f2fe;
+      font-size: .875rem;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background .2s, border-color .2s, color .2s, transform .2s;
+    }
+
+    .button > span[aria-hidden] { font: 400 1.2rem/1 var(--serif); color: #cee8ff; }
+    .button:hover { background: #1c445bcf; border-color: #b6edff87; transform: translateY(-1px); }
+    .button[aria-pressed="true"] { border-color: #8adff283; color: #c8f6ff; }
+    .button[aria-busy="true"] { opacity: .6; cursor: wait; }
+
+    .greeting {
+      position: absolute;
+      z-index: 1;
+      top: 42.5%;
+      left: clamp(26px, 6vw, 106px);
+      margin: 0;
+      transform: translateY(-40%);
+      pointer-events: none;
+    }
+
+    .greeting h1 {
+      margin: 0;
+      color: var(--ice);
+      font: 400 clamp(3.55rem, 6.1vw, 7.2rem)/.91 var(--serif);
+      letter-spacing: -.07em;
+      text-shadow: 0 3px 37px #020a17, 0 0 58px #bcefff29;
+    }
+
+    .greeting em { display: block; color: var(--gold); font-weight: 400; }
+    .greeting p { max-width: 25ch; margin: 23px 0 0; color: #d3e7fc; font-size: 1rem; line-height: 1.7; letter-spacing: .035em; text-shadow: 0 2px 12px #061421; }
+    .theater.is-playing .greeting { animation: title-in 1.8s var(--title-cue) both; }
+
+    @keyframes title-in {
+      from { opacity: 0; transform: translateY(calc(-40% + 13px)); }
+      to { opacity: 1; transform: translateY(-40%); }
+    }
+
+    .scene-footer {
+      position: absolute;
+      z-index: 1;
+      inset: auto clamp(22px, 5vw, 78px) clamp(18px, 4.4vh, 43px);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .hint, .notice { margin: 0; color: var(--mist); font-size: .875rem; letter-spacing: .045em; text-shadow: 0 1px 10px #000; }
+    .hint::before { display: inline-block; content: '↔'; margin-right: 9px; color: #d7eafa; font-size: 1.1rem; vertical-align: -1px; }
+    .theater.is-playing .hint, .intro-controls { display: none; }
+    .theater.is-playing .intro-controls { display: grid; }
+
+    .intro-controls { width: min(160px, 100%); gap: 1px; }
+    .skip {
+      justify-self: start;
+      min-height: 35px;
+      padding: 4px 0;
+      border: 0;
+      background: none;
+      color: #deeeff;
+      font-size: .875rem;
+      text-shadow: 0 1px 9px #030a12;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .skip:hover { color: var(--gold); }
+    .intro-progress { height: 2px; border-radius: 2px; overflow: hidden; background: #a7c5e244; }
+    .intro-progress::after {
+      display: block;
+      content: '';
+      width: 100%;
+      height: 100%;
+      transform-origin: left;
+      background: linear-gradient(90deg, #7bd7e4, #ffe8b1);
+      animation: intro-progress var(--show-duration) linear both;
+    }
+
+    @keyframes intro-progress {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+    .notice { color: var(--gold); text-align: right; }
+    .actions { gap: 11px; }
+    .actions .button { min-height: 47px; padding-inline: 16px; }
+
+    .actions .primary {
+      min-width: 108px;
+      color: #15283b;
+      background: #f4e3b9;
+      border-color: #ffeec8;
+      font-weight: 670;
+      box-shadow: 0 0 26px #fbe8b42f, 0 6px 18px #010a146e;
+    }
+
+    .primary > span[aria-hidden] { color: inherit; }
+    .primary:hover { background: #fff2d4; color: #142238; }
+
+    .letter {
+      width: min(465px, calc(100% - 40px));
+      max-height: calc(100% - 40px);
+      margin: auto;
+      padding: 47px 31px 38px;
+      border: 1px solid #e7d8ac;
+      border-radius: 10px;
+      background: radial-gradient(ellipse at 24% 0%, #fff4d8, transparent 72%), #e9eff5;
+      color: #293f55;
+      box-shadow: 0 20px 100px #0008;
+      text-align: center;
+    }
+
+    .letter::backdrop { background: #030b17a3; backdrop-filter: blur(5px); }
+    .letter h2 { margin: 13px 0 20px; font: italic 400 clamp(2.2rem, 5vw, 3.2rem)/1 var(--serif); letter-spacing: -.05em; }
+    .letter-mark { display: block; color: #926e36; font-size: 2.15rem; line-height: 1; }
+    .letter p { margin: 0; font-size: 1rem; line-height: 2; }
+    .letter p + p { margin-top: 20px; color: #6b532f; letter-spacing: .13em; }
+
+    .letter-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      padding: 0 0 3px;
+      border: 0;
+      border-radius: 50%;
+      color: #344f67;
+      background: transparent;
+      font-size: 1.75rem;
+      cursor: pointer;
+    }
+
+    .letter-close:hover { background: #4c6f8519; }
+    .letter-close:focus-visible { outline-color: #344f67; outline-offset: -2px; }
+
+    @media (max-width: 1000px) {
+      .greeting h1 { font-size: clamp(2.9rem, 6vw, 5.1rem); }
+      .greeting p { font-size: .9rem; }
+    }
+
+    @media (max-width: 710px) {
+      .bar { padding-inline: 17px; gap: 8px; }
+      .brand { gap: 7px; font-size: .8125rem; letter-spacing: .06em; }
+      .bar-controls { gap: 5px; }
+      .control { width: 42px; padding-inline: 0; }
+      .control .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+      #tree { top: 14%; height: 82%; }
+      .greeting { top: max(76px, 12%); left: 20px; transform: none; }
+      .greeting h1 { font-size: clamp(2.3rem, 6.1vw, 3.45rem); }
+      .greeting em { display: inline; }
+      .greeting p { margin-top: 11px; }
+      .theater.is-playing .greeting { animation-name: mobile-title-in; }
+      .scene-footer { inset-inline: 17px; grid-template-columns: 1fr; justify-items: center; gap: 8px; }
+      .hint, .notice:empty { display: none; }
+      .scene-guide { display: none; }
+      .theater.is-playing .scene-guide { display: block; }
+      .intro-controls { width: 118px; justify-items: stretch; }
+      .skip { justify-self: center; }
+      .notice { text-align: center; }
+      .actions { gap: 6px; }
+      .actions .button { padding-inline: 12px; }
+    }
+
+    @media (max-width: 710px) and (max-height: 520px) {
+      .greeting p { display: none; }
+    }
+
+    @keyframes mobile-title-in {
+      from { opacity: 0; transform: translateY(9px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="theater" id="theater" aria-labelledby="greeting-title">
+    <div class="scene" id="scene">
+      <div class="scene-world" id="scene-world">
+        <canvas id="sky" aria-hidden="true"></canvas>
+        <canvas id="tree" role="img" aria-label="A silver-blue Christmas tree made of stardust beneath the northern lights. Drag to rotate the tree."></canvas>
+        <canvas id="fireworks" aria-hidden="true"></canvas>
+      </div>
+      <canvas id="flight-dust" width="1" height="1" aria-hidden="true"></canvas>
+      <div class="shade" aria-hidden="true"></div>
+    </div>
+
+    <header class="bar">
+      <p class="brand"><span class="brand-mark" aria-hidden="true">✧</span>Aurora Christmas</p>
+      <div class="bar-controls" aria-label="Scene settings" role="group">
+        <button class="button control" id="music-toggle" type="button" aria-pressed="false">
+          <span aria-hidden="true">♪</span><span class="label">Music</span>
+        </button>
+        <button class="button control" id="snow-toggle" type="button" aria-pressed="true">
+          <span aria-hidden="true">❄</span><span class="label">Snow</span>
+        </button>
+        <button class="button control" id="fullscreen" type="button" aria-pressed="false">
+          <span aria-hidden="true">⛶</span><span class="label">Full Screen</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="greeting" aria-labelledby="greeting-title">
+      <h1 id="greeting-title">Merry <em>Christmas</em></h1>
+      <p>May a little starlight find you this winter.</p>
+    </section>
+
+    <footer class="scene-footer">
+      <div class="scene-guide">
+        <p class="hint">Drag to rotate the tree</p>
+        <div class="intro-controls">
+          <button class="skip" id="skip-intro" type="button">Skip Intro</button>
+          <div class="intro-progress" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="actions" aria-label="Christmas show controls" role="group">
+        <button class="button" id="replay" type="button"><span aria-hidden="true">↻</span>Replay</button>
+        <button class="button primary" id="burst" type="button"><span aria-hidden="true">✦</span>Fireworks</button>
+        <button class="button" id="open-letter" type="button"><span aria-hidden="true">✉</span>Open Card</button>
+      </div>
+      <p class="notice" id="notice" role="status"></p>
+    </footer>
+  </main>
+
+  <dialog class="letter" id="letter" aria-labelledby="letter-title">
+    <form method="dialog">
+      <button class="letter-close" type="submit" aria-label="Close card">×</button>
+    </form>
+    <span class="letter-mark" aria-hidden="true">✧</span>
+    <h2 id="letter-title">A Winter Wish</h2>
+    <p>May there always be a light left on for you.<br>And may something good be just around the corner.</p>
+    <p>Merry Christmas</p>
+  </dialog>
+  <script>
+    const christmasShow = Object.freeze({
+      duration: 25,
+      lake: 5.4,
+      assembly: 7.35,
+      garland: 12.55,
+      crown: 16.65,
+      greeting: 17.05,
+      fireworks: [17.75, 19.7, 21.6],
+    });
+
+    const christmasComet = (() => {
+      function ease(value) {
+        const t = Math.max(0, Math.min(1, value));
+        return t * t * (3 - 2 * t);
+      }
+
+      return {
+        ease,
+        progressAt(seconds) {
+          return ease((seconds - 0.95) / (christmasShow.lake - 1.13));
+        },
+        position(progress, width, height) {
+          const turn = progress * Math.PI * 2 * 3.2 - 0.76;
+          const radius = (1 - progress) ** 0.92 * 0.235;
+          const center = width * (width > height * 1.28 ? 0.525 : 0.5);
+          return {
+            x: center + Math.sin(turn) * radius * Math.min(height, width * 2.04),
+            y: (0.79 + (0.165 - 0.79) * progress ** 1.42 + Math.cos(turn) * radius * 0.19) * height,
+          };
+        },
+      };
+    })();
+  </script>
+
+  <script>
+(() => {
+  'use strict';
+
+  const TAU = Math.PI * 2;
+  const STAR_Y = 0.165;
+  const TIP_Y = 0.19;
+  const BASE_Y = 0.744;
+  const GROUND_Y = 0.79;
+  const INTRO_SECONDS = christmasShow.duration;
+  const GARLAND_POINTS = 575;
+  const GATHER_SECONDS = 6.96;
+  const ROOT_ANGLE = Math.PI * (3 - Math.sqrt(5));
+  const COLORS = ['#526c9c', '#809dd1', '#a1c4f5', '#bedbff', '#def1ff', '#f7fbff', '#fff4db', '#e8d5ad'];
+
+  function mix(a, b, amount) {
+    return a + (b - a) * amount;
+  }
+
+  function smooth(value) {
+    const amount = Math.max(0, Math.min(1, value));
+    return amount * amount * (3 - 2 * amount);
+  }
+
+  function seededRandom(seed) {
+    return () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+  }
+
+  function radiusAt(progress) {
+    return 0.203 * progress ** 0.91;
+  }
+
+  const garland = Array.from({ length: 2 }, (_, strand) =>
+    Array.from({ length: GARLAND_POINTS + 1 }, (_, index) => {
+      const along = index / GARLAND_POINTS;
+      const progress = 0.982 - along * 0.959;
+      const theta = along * TAU * 9.25 + 0.37 + (strand ? 0.55 * (1 - along * 0.59) : 0);
+      const radius = radiusAt(progress) * (1.05 + 0.057 * Math.sin(theta * 1.7) + 0.022 * Math.cos(theta * 3.4));
+      const y = mix(TIP_Y, BASE_Y, progress) + Math.sin(theta * 2.4) * 0.00205 + (strand ? 0.0048 : 0);
+      return { x: Math.cos(theta) * radius, y, z: Math.sin(theta) * radius };
+    })
+  );
+
+  function makeParticles() {
+    const random = seededRandom(241225);
+    const needles = [];
+    const ornaments = [];
+
+    function point(progress, radius, theta, color, size, opacity) {
+      return {
+        x: radius * Math.cos(theta),
+        z: radius * Math.sin(theta),
+        y: mix(TIP_Y, BASE_Y, progress),
+        yStart: GROUND_Y + (random() - 0.5) * 0.055,
+        progress,
+        radius,
+        theta,
+        delay: (1 - progress) * 1.25 + random() * 0.89,
+        phase: random() * TAU,
+        color,
+        size,
+        opacity,
+      };
+    }
+
+    for (let index = 0; index < 4820; index++) {
+      const progress = 0.006 + random() ** 0.57 * 0.988;
+      const radius = radiusAt(progress) * (0.12 + random() ** 0.51 * 0.88);
+      const color = Math.floor(random() ** 1.45 * 6);
+      needles.push(point(progress, radius, random() * TAU, color, 0.34 + random() ** 3 * 1.28, 0.32 + random() * 0.61));
+    }
+
+    for (let layer = 0; layer < 17; layer++) {
+      const height = (layer + 1) / 17;
+      const branchCount = Math.round(6 + 12 * height);
+      const phase = random() * TAU;
+      for (let branch = 0; branch < branchCount; branch++) {
+        const angle = phase + branch * TAU / branchCount + (random() - 0.5) * 0.25;
+        const end = height + (random() - 0.5) * 0.036;
+        const reach = radiusAt(end) * (0.81 + random() * 0.31);
+        for (let needle = 0; needle < 15 + height * 8; needle++) {
+          const length = random() ** 0.66;
+          const progress = Math.max(0.006, end - (1 - length) * 0.1 + (random() - 0.55) * 0.032);
+          const twig = (random() - 0.5) * (0.54 - length * 0.31);
+          const tint = random();
+          const color = tint > 0.973 ? 6 : tint > 0.86 ? 5 : 1 + Math.floor(tint / 0.22);
+          needles.push(point(progress, reach * (0.36 + 0.64 * length), angle + twig, color, 0.43 + random() ** 2.5 * 1.52, 0.48 + random() * 0.5));
+        }
+
+        if (random() < 0.73) {
+          ornaments.push(point(end - 0.013, reach * 0.97, angle, random() > 0.64 ? 6 : 4, 1.4 + random() ** 2 * 3.1, 0.7 + random() * 0.3));
+        }
+      }
+    }
+
+    const ground = Array.from({ length: 1420 }, () => ({
+      angle: random() * TAU,
+      radius: 0.031 + random() ** 0.47 * 0.28,
+      y: GROUND_Y + (random() - 0.5) * (0.009 + random() ** 2 * 0.031),
+      phase: random() * TAU,
+      color: random() < 0.71 ? 2 + Math.floor(random() * 3) : 5,
+      size: 0.39 + random() ** 3 * 1.55,
+      opacity: 0.19 + random() * 0.73,
+    }));
+
+    needles.forEach((point, index) => {
+      const level = Math.max(0, 1 - point.progress);
+      const bunch = Math.floor(level * 17.5) / 17.5;
+      const scatter = point.delay - level * 1.25;
+      point.arrival = Math.max(0, bunch * 2.76 + scatter * 1.03);
+      point.root = 0.18 + point.phase / TAU * 0.18 + point.radius * 0.21;
+      point.twist = 2.2 + point.phase * 0.43;
+      point.comet = point.color >= 2 && index % 27 === 0;
+    });
+    needles.sort((first, second) => first.color - second.color);
+    ground.sort((first, second) => first.color - second.color);
+    return { needles, ornaments, ground };
+  }
+
+  function glowSprite(color) {
+    const sprite = document.createElement('canvas');
+    sprite.width = 48;
+    sprite.height = 48;
+    const context = sprite.getContext('2d');
+    const gradient = context.createRadialGradient(24, 24, 0, 24, 24, 24);
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(0.12, `${color}eb`);
+    gradient.addColorStop(0.22, `${color}8d`);
+    gradient.addColorStop(0.44, `${color}39`);
+    gradient.addColorStop(0.73, `${color}0c`);
+    gradient.addColorStop(1, `${color}00`);
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 48, 48);
+    return sprite;
+  }
+
+  window.createChristmasTree = function createChristmasTree(canvas) {
+    const context = canvas.getContext('2d', { alpha: true });
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const particles = makeParticles();
+    const glows = COLORS.map(glowSprite);
+    const sparks = [];
+    const projected = { x: 0, y: 0, depth: 0, perspective: 1 };
+    const flow = { x: 0, y: 0, z: 0 };
+    let width = 0;
+    let height = 0;
+    let ratio = 1;
+    let horizontal = 1;
+    let unit = 1;
+    let center = 0;
+    let rotation = -0.42;
+    let targetRotation = rotation;
+    let cos = 1;
+    let sin = 0;
+    let start = performance.now();
+    let last = 0;
+    let frame = 0;
+    let pointerId;
+    let pointerX;
+
+    function resize() {
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      ratio = Math.min(window.devicePixelRatio || 1, width < 650 ? 1.65 : 1.8);
+      canvas.width = Math.max(1, Math.round(width * ratio));
+      canvas.height = Math.max(1, Math.round(height * ratio));
+      horizontal = Math.min(height, width * 2.04);
+      unit = Math.max(0.74, Math.min(1.37, Math.min(height / 810, width / 410)));
+      center = width * (width > height * 1.28 ? 0.525 : 0.5);
+      draw(performance.now());
+    }
+
+    function project(x, y, z) {
+      const depth = x * sin + z * cos;
+      const sideways = x * cos - z * sin;
+      const perspective = 1 / (1 - depth * 0.67);
+      projected.x = center + sideways * horizontal * perspective;
+      projected.y = (y + depth * 0.137) * height;
+      projected.depth = depth;
+      projected.perspective = perspective;
+      return projected;
+    }
+
+    function light(x, y, diameter, color, opacity) {
+      if (opacity <= 0) return;
+      context.globalAlpha = Math.min(1, opacity);
+      context.drawImage(glows[color], x - diameter * 0.5, y - diameter * 0.5, diameter, diameter);
+    }
+
+    function haze(x, y, radiusX, radiusY, color, opacity) {
+      if (opacity <= 0) return;
+      context.save();
+      context.translate(x, y);
+      context.scale(radiusX, radiusY);
+      context.globalAlpha = Math.min(1, opacity);
+      const gradient = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, `${color.slice(0, 7)}00`);
+      context.fillStyle = gradient;
+      context.fillRect(-1, -1, 2, 2);
+      context.restore();
+    }
+
+    function diamond(x, y, radiusX, radiusY, color, opacity) {
+      context.globalAlpha = Math.min(1, Math.max(0, opacity));
+      context.fillStyle = color;
+      context.beginPath();
+      context.moveTo(x, y - radiusY);
+      context.quadraticCurveTo(x + radiusX * 0.06, y - radiusY * 0.04, x + radiusX, y);
+      context.quadraticCurveTo(x + radiusX * 0.06, y + radiusY * 0.04, x, y + radiusY);
+      context.quadraticCurveTo(x - radiusX * 0.06, y + radiusY * 0.04, x - radiusX, y);
+      context.quadraticCurveTo(x - radiusX * 0.06, y - radiusY * 0.04, x, y - radiusY);
+      context.fill();
+    }
+
+    function flare(x, y, size, opacity, warm) {
+      if (opacity <= 0) return;
+      const color = warm ? 6 : 5;
+      haze(x, y, size * 7.9, size * 0.27, warm ? '#d7d5ee9c' : '#8bb7ffaa', opacity * 0.84);
+      light(x, y, size * 7.3, warm ? 7 : 3, opacity * 0.46);
+      light(x, y, size * 3.8, color, opacity * 0.9);
+      light(x, y, size, 5, opacity);
+      diamond(x, y, size * 2.33, size * 0.19, '#e6eeff', opacity * 0.8);
+      diamond(x, y, size * 0.23, size * 1.48, '#ffffff', opacity);
+      context.save();
+      context.translate(x, y);
+      context.rotate(Math.PI * 0.245);
+      diamond(0, 0, size * 0.73, size * 0.57, '#fff4dd', opacity * 0.9);
+      context.restore();
+    }
+
+    function trace(progress) {
+      return christmasComet.position(progress, width, height);
+    }
+
+    function drawIntro(time) {
+      const lake = christmasShow.lake;
+      if (time >= lake + 1.4) return;
+      const progress = christmasComet.progressAt(time);
+      const strength = (0.10 + smooth(time / 0.89) * 0.90) * (1 - smooth((time - lake + 0.10) / 0.36));
+      const trailOpacity = (0.32 + progress * 0.68) * (1 - smooth((time - lake) / 1.36));
+      const head = trace(progress);
+      context.lineCap = 'round';
+
+      for (let step = 0; step < 2; step++) {
+        context.beginPath();
+        for (let index = 0; index <= 140; index++) {
+          const part = progress * index / 140;
+          const location = trace(part);
+          const offset = step * Math.sin(part * 198) * 1.45 * unit;
+          if (index === 0) context.moveTo(location.x, location.y);
+          else context.lineTo(location.x + offset, location.y - offset);
+        }
+        context.strokeStyle = step === 0 ? '#dbeaff' : '#a8cfff';
+        context.lineWidth = Math.max(0.48, (step === 0 ? 0.84 : 2.7) * unit);
+        context.globalAlpha = trailOpacity * (step === 0 ? 0.58 : 0.13);
+        context.stroke();
+      }
+
+      for (let index = 0; index < 24; index++) {
+        const distance = index * 0.0072 + (time * 0.022) % 0.0072;
+        if (distance > progress) break;
+        const spot = trace(progress - distance);
+        const flutter = Math.sin(index * 3.13 + time * 2.7) * unit * index * 0.29;
+        light(spot.x + flutter, spot.y - flutter * 0.44, (5.7 - index * 0.14) * unit, 4, trailOpacity * (1 - index / 24) * 0.78);
+      }
+
+      const radius = mix(25, 8.2, progress) * unit;
+      flare(head.x, head.y, radius, strength, false);
+      const detonation = smooth((time - lake) / 0.34) * (1 - smooth((time - lake - 0.36) / 0.81));
+      haze(center, height * GROUND_Y, horizontal * (0.09 + detonation * 0.3), height * 0.031, '#d1dcffff', detonation * 0.66);
+    }
+
+    function drawLakeRings(time) {
+      for (let ring = 0; ring < 3; ring++) {
+        const age = (time - christmasShow.lake - ring * 0.68) / 2.45;
+        if (age <= 0 || age >= 1) continue;
+        const spread = 1 - (1 - age) ** 1.55;
+        const pulse = smooth(age / 0.13) * (1 - age) ** 1.35;
+        const radius = horizontal * (0.035 + spread * 0.42);
+        context.beginPath();
+        context.ellipse(center, height * GROUND_Y, radius, radius * 0.132, 0, 0, TAU);
+        context.strokeStyle = ring === 0 ? '#c5eaff' : '#84dfef';
+        context.lineWidth = Math.max(1.2, unit * 6.2);
+        context.globalAlpha = pulse * 0.14;
+        context.stroke();
+        context.lineWidth = Math.max(0.55, unit * 1.12);
+        context.globalAlpha = pulse * 0.69;
+        context.stroke();
+      }
+    }
+
+    function drawGround(time, ambient) {
+      const sinceLake = time - christmasShow.lake;
+      const growth = smooth((sinceLake + 0.23) / 1.27);
+      if (growth <= 0) return;
+      const peak = smooth((sinceLake + 0.2) / 0.67) * (1 - smooth((sinceLake - 1.02) / 3.38));
+      haze(center, height * (GROUND_Y + 0.006), horizontal * 0.36, height * 0.081, '#5085c855', (ambient * 0.61 + peak) * growth);
+      haze(center, height * GROUND_Y, horizontal * 0.27, height * 0.039, '#a9daffa3', (0.57 * ambient + peak) * growth);
+      haze(center, height * (GROUND_Y + 0.006), horizontal * 0.126, height * 0.02, '#c8efffb0', (0.56 * ambient + peak) * growth);
+
+      let color = -1;
+      for (let index = 0; index < particles.ground.length; index++) {
+        if (width < 580 && index % 3 === 0) continue;
+        const dot = particles.ground[index];
+        const angle = dot.angle + (motion.matches ? 0 : time * 0.47 + peak * 0.92 / (0.21 + dot.radius));
+        const radius = dot.radius * (0.36 + growth * 0.54 + peak * 0.07);
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const location = project(x, dot.y + Math.sin(dot.phase + time * 2.1) * dot.radius * 0.026, z);
+        const shimmer = 0.72 + Math.sin(dot.phase + time * 1.8) * 0.28;
+        const opacity = growth * dot.opacity * shimmer * (0.28 + peak * 0.79 + ambient * 0.29);
+        const size = dot.size * unit;
+        context.globalAlpha = Math.min(1, opacity);
+        if (dot.color !== color) {
+          color = dot.color;
+          context.fillStyle = COLORS[color];
+        }
+        context.fillRect(location.x, location.y, size, size * 0.75);
+      }
+    }
+
+    function incoming(point, age) {
+      const inward = smooth(age / 0.52);
+      const branching = smooth((age - 0.4) / 0.56);
+      const rising = smooth((age - 0.05) / 0.75);
+      const overshoot = Math.sin(Math.PI * smooth((age - 0.69) / 0.29));
+      const radius = mix(mix(point.root, 0.024 + point.progress * 0.033, inward), point.radius, branching) + overshoot * point.radius * 0.13;
+      const angle = point.theta + point.twist * (1 - inward) + Math.sin(age * TAU + point.phase) * (1 - branching) * 0.36;
+      flow.x = radius * Math.cos(angle);
+      flow.z = radius * Math.sin(angle);
+      flow.y = mix(point.yStart, point.y, rising) + Math.sin(age * 8 + point.phase) * (1 - branching) * 0.013;
+      return flow;
+    }
+
+    function drawNeedles(time) {
+      const sinceAssembly = time - christmasShow.assembly;
+      if (sinceAssembly <= 0) return;
+      const assembly = sinceAssembly < GATHER_SECONDS;
+      const crownAge = (time - christmasShow.crown - 0.27) / 1.65;
+      let color = -1;
+      for (let index = 0; index < particles.needles.length; index++) {
+        if (width < 575 && index % 3 === 0) continue;
+        const point = particles.needles[index];
+        let x = point.x;
+        let y = point.y;
+        let z = point.z;
+        let opacity = point.opacity;
+        let energy = 0;
+        if (assembly) {
+          const age = (sinceAssembly - point.arrival) / 3.27;
+          if (age <= 0) continue;
+          if (age < 1) {
+            const approach = incoming(point, age);
+            x = approach.x;
+            y = approach.y;
+            z = approach.z;
+            energy = Math.sin(age * Math.PI) ** 1.45;
+            opacity *= smooth(age / 0.19) * (1.04 + energy * 0.51);
+            if (point.comet && age > 0.06 && age < 0.81) {
+              const head = project(x, y, z);
+              const headX = head.x;
+              const headY = head.y;
+              const tail = incoming(point, age - 0.045);
+              const trail = project(tail.x, tail.y, tail.z);
+              context.beginPath();
+              context.moveTo(trail.x, trail.y);
+              context.lineTo(headX, headY);
+              context.strokeStyle = point.color > 4 ? '#ffecbd' : '#98d7ff';
+              context.lineWidth = (0.48 + energy * 1.15) * unit;
+              context.globalAlpha = energy * 0.73;
+              context.stroke();
+              light(headX, headY, (10.3 + point.size * 4.2) * unit, point.color > 4 ? 6 : 4, energy * 0.71);
+            }
+          }
+        }
+        const location = project(x, y, z);
+        const facing = Math.max(0.34, 0.89 + location.depth * 2.2);
+        const shimmer = 0.83 + Math.sin(point.phase + time * (1.41 + point.color * 0.2)) * 0.17;
+        const crownWave = crownAge > 0 && crownAge < 1.19
+          ? Math.max(0, 1 - Math.abs(point.progress - crownAge) * 8.6) * (1 - crownAge * 0.46)
+          : 0;
+        const size = point.size * unit * location.perspective * (1.12 + energy * 0.21 + crownWave * 0.61);
+        opacity *= facing * shimmer * (1 + crownWave * 0.54);
+        if (size > 1.25 && point.color > 1) {
+          light(location.x, location.y, size * 4.7, point.color, opacity * 0.91);
+        } else {
+          context.globalAlpha = Math.min(1, opacity);
+          if (point.color !== color) {
+            color = point.color;
+            context.fillStyle = COLORS[color];
+          }
+          context.fillRect(location.x, location.y, Math.max(0.76, size), Math.max(0.76, size));
+        }
+      }
+    }
+
+    function drawGathering(time, front) {
+      const sinceAssembly = time - christmasShow.assembly;
+      if (sinceAssembly < -0.22 || sinceAssembly > 7.24) return;
+      const narrow = width < 575;
+      const stepCount = narrow ? 24 : 36;
+      for (let wave = 0; wave < 9; wave++) {
+        const age = (sinceAssembly + 0.22 - wave * 0.616) / 2.01;
+        if (age <= 0 || age >= 1.15) continue;
+        const strength = smooth(age / 0.14) * (1 - smooth((age - 0.76) / 0.39));
+        const rise = 0.16 + wave * 0.091;
+        const warm = wave % 3 === 1;
+        context.beginPath();
+        let following = false;
+        for (let index = 0; index <= stepCount; index++) {
+          const tail = index / stepCount;
+          const along = age - (1 - tail) * 0.48;
+          if (along <= 0) continue;
+          const flight = Math.min(1.15, along);
+          const lift = smooth(flight * 0.98);
+          const angle = wave * ROOT_ANGLE + flight * TAU * (1.05 + wave * 0.031) + 0.32 * Math.sin(flight * 7);
+          const radius = mix(0.307 + 0.028 * Math.sin(wave * 2.19), radiusAt(1 - rise) * 0.92, smooth(flight / 0.96));
+          const y = mix(GROUND_Y - 0.009, mix(BASE_Y, TIP_Y, rise), lift)
+            + Math.sin(angle * 2.21) * (1 - lift) * 0.018;
+          const position = project(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+          if ((position.depth > -0.009) !== front) {
+            following = false;
+            continue;
+          }
+          if (following) context.lineTo(position.x, position.y);
+          else context.moveTo(position.x, position.y);
+          following = true;
+        }
+        context.lineCap = 'round';
+        context.strokeStyle = warm ? '#f4ca88' : '#8ecfff';
+        context.lineWidth = (4.4 + strength * 1.8) * unit;
+        context.globalAlpha = strength * (front ? 0.22 : 0.11);
+        context.stroke();
+        context.strokeStyle = warm ? '#fff0c7' : '#d5f3ff';
+        context.lineWidth = (0.84 + strength * 0.49) * unit;
+        context.globalAlpha = strength * (front ? 0.76 : 0.32);
+        context.stroke();
+
+        for (let spark = 0; spark < (narrow ? 8 : 12); spark++) {
+          const travel = age - spark * 0.029;
+          if (travel <= 0) break;
+          const lift = smooth(travel * 0.98);
+          const phase = wave * ROOT_ANGLE + travel * TAU * (1.05 + wave * 0.031) + 0.32 * Math.sin(travel * 7);
+          const flutter = Math.sin(spark * 4.1 + time * 2.1) * 0.012;
+          const radius = mix(0.307 + 0.028 * Math.sin(wave * 2.19), radiusAt(1 - rise) * 0.92, smooth(travel / 0.96)) + spark * flutter * 0.27;
+          const y = mix(GROUND_Y - 0.009, mix(BASE_Y, TIP_Y, rise), lift)
+            + Math.sin(phase * 2.21) * (1 - lift) * 0.018 + flutter * (spark ? 0.7 : 0);
+          const spot = project(Math.cos(phase) * radius, y, Math.sin(phase) * radius);
+          if ((spot.depth > -0.009) !== front) continue;
+          const brightness = strength * (1 - spark / 14) * (front ? 0.87 : 0.56);
+          light(spot.x, spot.y, (spark === 0 ? 29 : 11.8 - spark * 0.55) * unit, warm ? 6 : 4, brightness);
+          if (spark === 0 && front) diamond(spot.x, spot.y, 5.4 * unit, 7.4 * unit, '#f2f9ff', brightness * 0.71);
+        }
+      }
+    }
+
+    function drawReflection(time, ambient) {
+      if (ambient <= 0) return;
+      context.fillStyle = '#a7d4fc';
+      for (let index = 11; index < particles.needles.length; index += 55) {
+        const point = particles.needles[index];
+        const distance = 1 - point.progress;
+        const x = project(point.x, point.y, point.z).x;
+        const ripple = Math.sin(time * 1.24 + point.phase + distance * 13);
+        const y = height * (0.806 + distance * 0.135) + ripple * unit * 1.6;
+        const length = unit * (1.9 + point.size * 4.4) * (1 - distance * 0.62);
+        context.globalAlpha = ambient * (1 - distance) ** 1.31 * (0.11 + ripple * 0.055);
+        context.fillRect(x + ripple * unit * 5 - length / 2, y, length, Math.max(.6, unit * .66));
+      }
+    }
+
+    function drawGarland(time, front) {
+      const visible = smooth((time - christmasShow.garland) / 4.07);
+      if (visible <= 0) return;
+      const stepCount = Math.floor(visible * GARLAND_POINTS);
+      for (let strand = 0; strand < 2; strand++) {
+        context.beginPath();
+        let following = false;
+        for (let index = 0; index <= stepCount; index++) {
+          const point = garland[strand][index];
+          const location = project(point.x, point.y, point.z);
+          const show = (location.depth > -0.009) === front;
+          if (!show) {
+            following = false;
+            continue;
+          }
+          if (following) context.lineTo(location.x, location.y);
+          else context.moveTo(location.x, location.y);
+          following = true;
+        }
+        context.lineCap = 'round';
+        context.strokeStyle = '#f7dfb0';
+        context.lineWidth = (strand ? 2.65 : 4.1) * unit;
+        context.globalAlpha = front ? 0.104 : 0.055;
+        context.stroke();
+        context.strokeStyle = strand ? '#cddfff' : '#ffefd0';
+        context.lineWidth = Math.max(0.48, (strand ? 0.52 : 0.83) * unit);
+        context.globalAlpha = front ? (strand ? 0.37 : 0.76) : (strand ? 0.19 : 0.29);
+        context.stroke();
+      }
+      if (front && visible < 1) {
+        const strength = smooth(visible * 12) * (1 - smooth((visible - 0.975) / 0.025));
+        for (let strand = 0; strand < 2; strand++) {
+          for (let bead = 0; bead < 20; bead++) {
+            const index = stepCount - strand * 16 - bead * 5;
+            if (index < 0) break;
+            const point = garland[strand][index];
+            const { x, y, depth } = project(point.x, point.y, point.z);
+            const trail = (1 - bead / 20) ** 1.66;
+            const opacity = strength * trail * (depth > 0.01 ? 0.99 : 0.50);
+            light(x, y, unit * (bead ? 11.8 * trail + 2.5 : 30.8), strand ? 4 : 6, opacity);
+            if (!bead) light(x, y, unit * 8.4, 5, opacity);
+          }
+        }
+      }
+    }
+
+    function drawOrnaments(time) {
+      const sinceAssembly = time - christmasShow.assembly - 1.5;
+      if (sinceAssembly <= 0) return;
+      for (const point of particles.ornaments) {
+        const visible = smooth((sinceAssembly - (1 - point.progress) * 3.35) / 2.65);
+        if (visible <= 0) continue;
+        const { x, y, depth, perspective } = project(point.x, point.y, point.z);
+        if (depth < -0.024) continue;
+        const pulse = 0.61 + Math.sin(point.phase + time * (1.72 + point.progress)) * 0.39;
+        const opacity = visible * point.opacity * pulse * (0.55 + depth * 1.68);
+        const size = point.size * perspective * unit;
+        light(x, y, size * 6.1, point.color, opacity);
+        if (size > 2.9 && pulse > 0.67) {
+          diamond(x, y, size * 2.18, size * 2.8, '#f8f6e9', opacity * 0.73);
+          light(x, y, size * 3.2, 5, opacity * 0.79);
+        }
+      }
+    }
+
+    function drawSparks(now) {
+      for (let index = sparks.length - 1; index >= 0; index--) {
+        const spark = sparks[index];
+        const age = (now - spark.start) / spark.life;
+        if (age >= 1) {
+          sparks.splice(index, 1);
+          continue;
+        }
+        const spread = age * (2 - age);
+        const opacity = Math.min(1, age * 14) * (1 - age) ** 1.48;
+        const x = center + (spark.x + spark.dx * spread) * horizontal;
+        const y = (spark.y + spark.dy * spread + age * age * 0.074) * height;
+        light(x, y, spark.size * unit * 5.1, spark.color, opacity);
+        if (spark.size > 2.6) diamond(x, y, spark.size * 2.1, spark.size * 3.9, '#ebf7ff', opacity * 0.45);
+      }
+    }
+
+    function drawCrown(time) {
+      const age = time - christmasShow.crown;
+      const y = STAR_Y * height;
+      const breath = 0.94 + Math.sin(time * 1.95) * 0.06;
+      const steady = smooth(age / 0.85);
+      const charge = smooth((age + 0.65) / 0.63) * (1 - smooth((age - 0.04) / 0.28));
+      const flash = smooth((age - 0.04) / 0.29) * (1 - smooth((age - 0.43) / 1.08));
+      if (charge > 0) light(center, y, unit * (33 + charge * 91), 6, charge * 0.85);
+      if (steady > 0) flare(center, y, unit * (12.6 * breath + flash * 17.5), steady, true);
+      if (flash > 0) haze(center, y, horizontal * 0.27, height * 0.085, '#e1e9ff91', flash * 0.8);
+
+      for (let ripple = 0; ripple < 2; ripple++) {
+        const spread = (age - 0.21 - ripple * 0.26) / 1.5;
+        if (spread <= 0 || spread >= 1) continue;
+        const opening = 1 - (1 - spread) ** 2.2;
+        const radius = horizontal * (0.023 + (ripple ? 0.17 : 0.234) * opening);
+        const opacity = smooth(spread / 0.09) * (1 - spread) ** 1.6;
+        context.beginPath();
+        context.ellipse(center, y - 0.01 * height * opening, radius, radius * (ripple ? 0.29 : 0.18), ripple ? 0.33 : -0.19, 0.12, TAU - 0.12);
+        context.strokeStyle = ripple ? '#acd9ff' : '#ffe2a8';
+        context.lineWidth = (3.7 + (1 - spread) * 2.4) * unit;
+        context.globalAlpha = opacity * 0.19;
+        context.stroke();
+        context.lineWidth = 0.93 * unit;
+        context.globalAlpha = opacity * 0.76;
+        context.stroke();
+      }
+
+      if (age < -0.65 || age > 2.8) return;
+      const count = width < 575 ? 31 : 51;
+      for (let index = 0; index < count; index++) {
+        const phase = index * ROOT_ANGLE;
+        const drift = 0.016 + (index * 13 % 31) / 31 * 0.19;
+        const flight = (age - 0.12 - (index % 9) * 0.045) / (1.23 + (index % 11) * 0.13);
+        if (flight <= 0 || flight >= 1) continue;
+        const spread = flight * (2 - flight);
+        const x = center + Math.cos(phase) * horizontal * spread * drift;
+        const sparkY = y + (Math.sin(phase) * 0.59 * drift * spread + flight ** 2 * 0.062) * height;
+        const flicker = 0.71 + Math.sin(phase + age * 8.3) * 0.29;
+        const opacity = smooth(flight * 16) * (1 - flight) ** 1.35 * flicker;
+        const size = (5.1 + index % 5 * 2.6) * unit;
+        light(x, sparkY, size, index % 4 ? 6 : 4, opacity);
+        if (index % 9 === 0) diamond(x, sparkY, size * 0.47, size * 0.62, '#fff1d6', opacity * 0.83);
+      }
+    }
+
+    function draw(now) {
+      if (width < 1 || height < 1) return;
+      const elapsed = Math.max(0, (now - start) * 0.001);
+      const time = motion.matches ? INTRO_SECONDS : elapsed;
+      cos = Math.cos(rotation);
+      sin = Math.sin(rotation);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, width, height);
+      const ambient = smooth((time - christmasShow.assembly) / 6.2);
+      haze(center, height * 0.544, horizontal * 0.23, height * 0.29, '#3e60a243', ambient);
+      drawReflection(time, ambient);
+      drawGround(time, ambient);
+      drawLakeRings(time);
+      drawGathering(time, false);
+      drawGarland(time, false);
+      drawNeedles(time);
+      drawOrnaments(time);
+      drawGarland(time, true);
+      drawGathering(time, true);
+      drawIntro(time);
+      drawSparks(now);
+      drawCrown(time);
+      context.globalAlpha = 1;
+    }
+
+    function animate(now) {
+      frame = 0;
+      const delta = last ? Math.min(0.05, (now - last) * 0.001) : 0;
+      last = now;
+      if (!motion.matches && pointerId === undefined) targetRotation += delta * 0.137;
+      rotation += (targetRotation - rotation) * Math.min(1, delta * 11);
+      draw(now);
+      if (!motion.matches || Math.abs(targetRotation - rotation) > 0.004) {
+        schedule();
+      } else {
+        last = 0;
+      }
+    }
+
+    function schedule() {
+      if (!frame) frame = requestAnimationFrame(animate);
+    }
+
+    function onMotionChange() {
+      if (!motion.matches) start = performance.now() - INTRO_SECONDS * 1000;
+      schedule();
+    }
+
+    function pointerDown(event) {
+      if (!event.isPrimary || event.button !== 0) return;
+      pointerId = event.pointerId;
+      pointerX = event.clientX;
+      canvas.setPointerCapture(event.pointerId);
+    }
+
+    function pointerMove(event) {
+      if (event.pointerId !== pointerId) return;
+      targetRotation += (event.clientX - pointerX) * 0.009;
+      pointerX = event.clientX;
+      if (motion.matches) {
+        rotation = targetRotation;
+        draw(performance.now());
+      } else {
+        schedule();
+      }
+    }
+
+    function pointerUp(event) {
+      if (event.pointerId === pointerId) pointerId = undefined;
+    }
+
+    function burst() {
+      if (motion.matches) return;
+      const now = performance.now();
+      sparks.length = 0;
+      for (let index = 0; index < 148; index++) {
+        const angle = Math.random() * TAU;
+        const distance = 0.05 + Math.random() * 0.23;
+        const progress = Math.random();
+        sparks.push({
+          x: (Math.random() - 0.5) * radiusAt(progress) * 1.92,
+          y: mix(TIP_Y, BASE_Y, progress),
+          dx: Math.cos(angle) * distance,
+          dy: Math.sin(angle) * distance - 0.116,
+          size: 0.54 + Math.random() ** 2.2 * 3.53,
+          color: Math.random() > 0.43 ? 5 : 6,
+          start: now,
+          life: 653 + Math.random() * 1680,
+        });
+      }
+      schedule();
+    }
+
+    function replay(at = performance.now()) {
+      start = at;
+      last = 0;
+      rotation = -0.42;
+      targetRotation = rotation;
+      sparks.length = 0;
+      draw(performance.now());
+      if (!motion.matches) schedule();
+    }
+
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    canvas.addEventListener('pointerdown', pointerDown);
+    canvas.addEventListener('pointermove', pointerMove);
+    canvas.addEventListener('pointerup', pointerUp);
+    canvas.addEventListener('pointercancel', pointerUp);
+    canvas.addEventListener('lostpointercapture', pointerUp);
+    motion.addEventListener('change', onMotionChange);
+    resize();
+    if (!motion.matches) schedule();
+
+    return {
+      burst,
+      replay,
+      destroy() {
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+        motion.removeEventListener('change', onMotionChange);
+        canvas.removeEventListener('pointerdown', pointerDown);
+        canvas.removeEventListener('pointermove', pointerMove);
+        canvas.removeEventListener('pointerup', pointerUp);
+        canvas.removeEventListener('pointercancel', pointerUp);
+        canvas.removeEventListener('lostpointercapture', pointerUp);
+      },
+    };
+  };
+})();
+  </script>
+  <script>
+window.createChristmasSky = (canvas) => {
+  const context = canvas.getContext('2d', { alpha: false });
+  const background = document.createElement('canvas');
+  const terrain = document.createElement('canvas');
+  const curtain = document.createElement('canvas');
+  const aurora = document.createElement('canvas');
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const horizon = 0.683;
+  const tau = Math.PI * 2;
+  const ribbons = [
+    { y: 0.139, amplitude: 0.081, height: 0.127, hue: 200, phase: 3.9, opacity: 0.37, focus: 0.19, spread: 0.47 },
+    { y: 0.209, amplitude: 0.094, height: 0.174, hue: 161, phase: 1.45, opacity: 0.74, focus: 0.81, spread: 0.39 },
+    { y: 0.172, amplitude: 0.091, height: 0.126, hue: 170, phase: 2.6, opacity: 0.47, focus: 0.68, spread: 0.49 },
+    { y: 0.131, amplitude: 0.063, height: 0.102, hue: 149, phase: 4.26, opacity: 0.53, focus: 0.29, spread: 0.48 },
+  ];
+  let width = 0;
+  let height = 0;
+  let pixelScale = 1;
+  let snowEnabled = true;
+  let start = performance.now();
+  let lastAurora = -Infinity;
+  let request = 0;
+
+  function seededRandom(seed) {
+    return () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+  }
+
+  const random = seededRandom(901337);
+  const stars = Array.from({ length: 163 }, () => ({
+    x: random(),
+    y: 0.012 + random() * 0.587,
+    size: 0.29 + random() ** 2 * 1.1,
+    brightness: 0.22 + random() * 0.57,
+    phase: random() * tau,
+  }));
+  const ripples = Array.from({ length: 135 }, () => ({
+    x: random(),
+    depth: random() ** 1.5,
+    length: 0.22 + random(),
+    phase: random() * tau,
+    strength: 0.1 + random() * 0.9,
+  }));
+  const flakes = Array.from({ length: 164 }, (_, index) => ({
+    x: random(),
+    y: random(),
+    size: index < 12 ? 1.1 + random() * 2.4 : 0.34 + random() * 1.07,
+    speed: 0.018 + random() * 0.039,
+    drift: random() * 0.022,
+    phase: random() * tau,
+    brightness: 0.1 + random() * 0.58,
+  }));
+
+  function glow(layer, x, y, radiusX, radiusY, color) {
+    layer.save();
+    layer.translate(x, y);
+    layer.scale(radiusX, radiusY);
+    const gradient = layer.createRadialGradient(0, 0, 0, 0, 0, 1);
+    gradient.addColorStop(0, `rgba(${color},0.78)`);
+    gradient.addColorStop(0.28, `rgba(${color},0.5)`);
+    gradient.addColorStop(0.67, `rgba(${color},0.13)`);
+    gradient.addColorStop(1, `rgba(${color},0)`);
+    layer.fillStyle = gradient;
+    layer.fillRect(-1, -1, 2, 2);
+    layer.restore();
+  }
+
+  function prepareLayer(layer) {
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+    const drawing = layer.getContext('2d');
+    drawing.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
+    return drawing;
+  }
+
+  function paintBackground() {
+    const drawing = prepareLayer(background);
+    const sky = drawing.createLinearGradient(0, 0, 0, height);
+    sky.addColorStop(0, '#040815');
+    sky.addColorStop(0.36, '#091222');
+    sky.addColorStop(0.605, '#101e2f');
+    sky.addColorStop(horizon, '#132333');
+    sky.addColorStop(1, '#040911');
+    drawing.fillStyle = sky;
+    drawing.fillRect(0, 0, width, height);
+
+    glow(drawing, width * 0.51, height * 0.67, width * 0.66, height * 0.24, '40,74,99');
+    glow(drawing, width * 0.84, height * 0.39, width * 0.44, height * 0.32, '15,38,58');
+    glow(drawing, width * 0.13, height * 0.47, width * 0.38, height * 0.27, '21,32,64');
+  }
+
+  function ridge(drawing, level, amplitude, shade, phase) {
+    const variation = seededRandom(4336 + Math.floor(phase * 200));
+    const ridgeHeight = (x) => (
+      0.53 * Math.sin(x * 10.8 + phase)
+      + 0.29 * Math.sin(x * 21.7 + 0.9 + phase)
+      + 0.13 * Math.sin(x * 49.4 + 4 * phase)
+      + 0.05 * variation()
+    ) * amplitude;
+    drawing.beginPath();
+    for (let index = 0; index <= 240; index++) {
+      const x = index / 240;
+      const y = height * (level + ridgeHeight(x));
+      if (index === 0) drawing.moveTo(0, y);
+      else drawing.lineTo(x * width, y);
+    }
+    drawing.lineTo(width, height * horizon + 1);
+    drawing.lineTo(0, height * horizon + 1);
+    drawing.closePath();
+    drawing.fillStyle = shade;
+    drawing.fill();
+  }
+
+  function pine(drawing, x, y, size, spread, lean, vary) {
+    drawing.moveTo(x + size * lean, y - size);
+    for (let level = 1; level <= 7; level++) {
+      const progress = level / 8;
+      const edge = size * spread * progress ** 0.76 * (0.78 + vary() * 0.44);
+      const offset = size * lean * (1 - progress);
+      drawing.lineTo(x + offset + edge, y - size * (0.93 - progress));
+      drawing.lineTo(x + offset + edge * (0.46 + vary() * 0.16), y - size * (0.88 - progress));
+    }
+    drawing.lineTo(x + size * 0.028, y);
+    drawing.lineTo(x - size * 0.024, y);
+    for (let level = 7; level > 0; level--) {
+      const progress = level / 8;
+      const edge = size * spread * progress ** 0.76 * (0.79 + vary() * 0.39);
+      const offset = size * lean * (1 - progress);
+      drawing.lineTo(x + offset - edge * (0.43 + vary() * 0.18), y - size * (0.90 - progress));
+      drawing.lineTo(x + offset - edge, y - size * (0.93 - progress));
+    }
+    drawing.closePath();
+  }
+
+  function forest(drawing, options) {
+    const vary = seededRandom(options.seed);
+    const total = Math.max(54, Math.floor(width / options.spacing));
+    drawing.beginPath();
+    for (let index = -2; index <= total + 2; index++) {
+      const location = (index + vary() * 2 - 1) / total;
+      const shore = Math.sin(location * 14 + options.seed) * 0.003;
+      const clearing = 0.58 + 0.42 * Math.abs(Math.cos(location * Math.PI + 0.09));
+      const h = (0.38 + vary() ** 1.45 * 0.88) * options.maxHeight * (0.57 + 0.43 * clearing);
+      pine(drawing, width * location, height * (options.level + shore), height * h, 0.16 + vary() * 0.14, (vary() - 0.5) * 0.13, vary);
+    }
+    drawing.fillStyle = options.color;
+    drawing.fill();
+  }
+
+  function paintTerrain() {
+    const drawing = prepareLayer(terrain);
+    const shore = height * horizon;
+    ridge(drawing, 0.616, 0.045, 'rgba(31,48,66,.68)', 2.5);
+    ridge(drawing, 0.638, 0.034, 'rgba(12,29,43,.8)', 4.8);
+    forest(drawing, { seed: 86, spacing: 5.1, level: 0.657, maxHeight: 0.042, color: '#0f2430' });
+    const mist = drawing.createLinearGradient(0, height * 0.613, 0, shore + height * 0.025);
+    mist.addColorStop(0, 'rgba(66,104,121,0)');
+    mist.addColorStop(0.48, 'rgba(75,110,123,.19)');
+    mist.addColorStop(1, 'rgba(66,104,121,0)');
+    drawing.fillStyle = mist;
+    drawing.fillRect(0, height * 0.613, width, height * 0.102);
+    forest(drawing, { seed: 32, spacing: 7.7, level: 0.677, maxHeight: 0.067, color: '#081a23' });
+    forest(drawing, { seed: 73, spacing: 14.5, level: horizon + 0.005, maxHeight: 0.086, color: '#060f1b' });
+    forest(drawing, { seed: 80, spacing: 9.6, level: horizon + 0.007, maxHeight: 0.046, color: '#060f19' });
+
+    const lake = drawing.createLinearGradient(0, shore, 0, height);
+    lake.addColorStop(0, '#122431');
+    lake.addColorStop(0.034, '#0a1924');
+    lake.addColorStop(0.23, '#081421');
+    lake.addColorStop(0.68, '#050d17');
+    lake.addColorStop(1, '#040912');
+    drawing.fillStyle = lake;
+    drawing.fillRect(0, shore, width, height - shore);
+    drawing.save();
+    drawing.beginPath();
+    drawing.rect(0, shore, width, height - shore);
+    drawing.clip();
+    glow(drawing, width * 0.28, shore + height * 0.095, width * 0.42, height * 0.22, '9,42,54');
+    glow(drawing, width * 0.82, shore + height * 0.13, width * 0.38, height * 0.21, '10,55,51');
+    glow(drawing, width * 0.52, shore + height * 0.047, width * 0.38, height * 0.081, '26,43,59');
+    drawing.restore();
+
+    const edge = drawing.createLinearGradient(0, 0, width, 0);
+    edge.addColorStop(0, 'rgba(94,150,151,0)');
+    edge.addColorStop(0.22, 'rgba(104,159,167,.19)');
+    edge.addColorStop(0.5, 'rgba(110,140,173,.14)');
+    edge.addColorStop(0.77, 'rgba(80,153,139,.22)');
+    edge.addColorStop(1, 'rgba(90,150,143,0)');
+    drawing.fillStyle = edge;
+    drawing.fillRect(0, shore, width, 1);
+  }
+
+  function drawAurora(seconds) {
+    const w = curtain.width;
+    const h = curtain.height;
+    const drawing = curtain.getContext('2d');
+    const bloom = aurora.getContext('2d');
+    const breath = 0.87 + Math.sin(seconds * 0.48 - 0.3) * 0.13;
+    drawing.clearRect(0, 0, w, h);
+    bloom.clearRect(0, 0, w, h);
+    glow(bloom, w * 0.79, h * 0.153, w * 0.43, h * 0.24, '8,60,55');
+    glow(bloom, w * 0.13, h * 0.086, w * 0.35, h * 0.22, '13,40,58');
+    drawing.globalCompositeOperation = 'lighter';
+    for (const ribbon of ribbons) {
+      const points = [];
+      const steps = Math.max(1, Math.round(w / 2.3));
+      for (let index = 0; index <= steps; index++) {
+        const x = index / steps;
+        const sway = Math.sin(x * 6.8 + ribbon.phase + seconds * 0.19);
+        const folds = Math.sin(x * 14.2 - ribbon.phase * 1.37 - seconds * 0.14);
+        const flutter = Math.sin(x * 29.7 + ribbon.phase * 2.7 + seconds * 0.30);
+        const base = ribbon.y + ribbon.amplitude * (0.61 * sway + 0.29 * folds + 0.10 * flutter);
+        const falloff = Math.exp(-(((x - ribbon.focus) / ribbon.spread) ** 2));
+        const texture = 0.60 + 0.27 * Math.sin(x * 34 - seconds * 0.58 + ribbon.phase) ** 2
+          + 0.15 * Math.sin(x * 137 + seconds * 0.31 + ribbon.phase) ** 2;
+        const beam = ribbon.height * (0.58 + 0.42 * texture) * (0.78 + 0.27 * sway);
+        const strength = ribbon.opacity * falloff * texture * breath;
+        const top = h * (base - beam);
+        const bottom = h * (base + 0.028 + 0.014 * folds);
+        const hue = ribbon.hue + (1 - falloff) * 32 + 12 * flutter;
+        const gradient = drawing.createLinearGradient(0, top, 0, bottom);
+        gradient.addColorStop(0, `hsla(${hue + 59},66%,58%,0)`);
+        gradient.addColorStop(0.24, `hsla(${hue + 25},69%,53%,${strength * 0.055})`);
+        gradient.addColorStop(0.60, `hsla(${hue + 9},79%,49%,${strength * 0.16})`);
+        gradient.addColorStop(0.78, `hsla(${hue},78%,53%,${strength * 0.36})`);
+        gradient.addColorStop(0.88, `hsla(${hue - 2},74%,62%,${strength * 0.19})`);
+        gradient.addColorStop(1, `hsla(${hue},70%,47%,0)`);
+        drawing.fillStyle = gradient;
+        const firstPixel = Math.round(x * w);
+        const lastPixel = Math.round((index + 1) / steps * w);
+        drawing.fillRect(firstPixel, top, lastPixel - firstPixel, bottom - top);
+        points.push({ x: x * w, y: h * base });
+      }
+
+      for (let trace = 0; trace < 3; trace++) {
+        const first = Math.round(steps * Math.max(0, ribbon.focus - ribbon.spread * (0.59 + trace * 0.18)));
+        const last = Math.round(steps * Math.min(1, ribbon.focus + ribbon.spread * (0.71 + trace * 0.18)));
+        const trail = drawing.createLinearGradient(points[first].x, 0, points[last].x, 0);
+        trail.addColorStop(0, `hsla(${ribbon.hue},83%,69%,0)`);
+        trail.addColorStop(0.49, `hsla(${ribbon.hue},83%,69%,${ribbon.opacity * (0.065 - trace * 0.014)})`);
+        trail.addColorStop(1, `hsla(${ribbon.hue + 24},83%,69%,0)`);
+        drawing.strokeStyle = trail;
+        drawing.lineWidth = 0.45 + trace * 0.38;
+        drawing.beginPath();
+        for (let index = first; index <= last; index++) {
+          const point = points[index];
+          const y = point.y + h * (trace - 1) * (0.002 + 0.003 * Math.sin(index * 0.09 + seconds * 0.72));
+          if (index === first) drawing.moveTo(point.x, y);
+          else drawing.lineTo(point.x, y);
+        }
+        drawing.stroke();
+      }
+    }
+    drawing.globalCompositeOperation = 'source-over';
+    bloom.save();
+    bloom.globalCompositeOperation = 'screen';
+    bloom.globalAlpha = 0.96;
+    bloom.filter = `blur(${Math.max(2.2, h * 0.013)}px)`;
+    bloom.drawImage(curtain, 0, 0);
+    bloom.filter = 'none';
+    bloom.globalAlpha = 0.81;
+    bloom.drawImage(curtain, 0, 0);
+    bloom.restore();
+  }
+
+  function drawStars(seconds, reveal) {
+    context.fillStyle = '#d7e8fc';
+    for (const star of stars) {
+      const shimmer = 0.77 + Math.sin(seconds * 1.42 + star.phase) * 0.23;
+      const x = star.x * width;
+      const y = star.y * height;
+      context.globalAlpha = star.brightness * shimmer * reveal;
+      context.beginPath();
+      context.arc(x, y, star.size * 0.65, 0, tau);
+      context.fill();
+      if (star.size > 1.24) {
+        context.globalAlpha *= 0.28;
+        context.fillRect(x - 2.2, y - 0.35, 4.4, 0.7);
+        context.fillRect(x - 0.35, y - 2.0, 0.7, 4.0);
+      }
+    }
+    context.globalAlpha = 1;
+  }
+
+  function drawMeteor(seconds) {
+    if (seconds < 3.2) return;
+    const phase = (seconds - 3.2) % 22;
+    if (phase > 1) return;
+    const direction = Math.floor((seconds - 3.2) / 22) % 2 === 0 ? -1 : 1;
+    const startX = direction === -1 ? 0.83 : 0.19;
+    const t = phase / 1.0;
+    const x = width * (startX + direction * 0.15 * t);
+    const y = height * (0.13 + t * 0.094);
+    const tailX = x - direction * width * (0.023 + t * 0.032);
+    const tailY = y - height * 0.022;
+    const opacity = Math.sin(Math.PI * t) * 0.8;
+    const trail = context.createLinearGradient(tailX, tailY, x, y);
+    trail.addColorStop(0, 'rgba(164,211,249,0)');
+    trail.addColorStop(0.69, `rgba(164,211,249,${opacity * 0.5})`);
+    trail.addColorStop(1, `rgba(229,245,255,${opacity})`);
+    context.beginPath();
+    context.moveTo(tailX, tailY);
+    context.lineTo(x, y);
+    context.lineWidth = 1;
+    context.strokeStyle = trail;
+    context.stroke();
+  }
+
+  function drawWater(seconds, reveal) {
+    const shore = height * horizon;
+    const depth = height - shore;
+    const scale = Math.min(1.3, width / 1100 + 0.1);
+    for (const ripple of ripples) {
+      const y = shore + 2 + ripple.depth * (depth - 2);
+      const x = (ripple.x + 0.008 * Math.sin(seconds * 0.73 + ripple.phase)) * width;
+      const intensity = (0.52 + Math.sin(seconds * 1.24 + ripple.phase) * 0.43) * ripple.strength;
+      const length = (6 + 116 * ripple.depth) * ripple.length * scale;
+      const fade = ripple.depth > 0.72 ? 1 - (ripple.depth - 0.72) * 2.1 : 1;
+      context.globalAlpha = intensity * fade * (0.11 + reveal * 0.36);
+      context.fillStyle = ripple.x > 0.67 ? '#3f9c85' : '#467994';
+      const lineHeight = 0.5 + ripple.depth * 0.6;
+      context.fillRect(x - length * 0.32, y, length * 0.6, lineHeight);
+      context.globalAlpha *= 0.28;
+      context.fillRect(x - length * 0.52, y, length, lineHeight);
+    }
+    context.globalAlpha = 1;
+  }
+
+  function drawSnow(seconds, reveal) {
+    context.fillStyle = '#d4e9f7';
+    for (const flake of flakes) {
+      const y = ((flake.y + seconds * flake.speed) % 1) * height;
+      const x = (((flake.x + Math.sin(seconds * 0.56 + flake.phase) * flake.drift + seconds * 0.004) % 1) + 1) % 1 * width;
+      const band = Math.min(1, y / (height * 0.22), (height - y) / (height * 0.12));
+      context.globalAlpha = flake.brightness * band * reveal;
+      context.beginPath();
+      context.arc(x, y, flake.size, 0, tau);
+      context.fill();
+      if (flake.size > 1.82) {
+        context.globalAlpha *= 0.14;
+        context.beginPath();
+        context.arc(x, y, flake.size * 2.2, 0, tau);
+        context.fill();
+      }
+    }
+    context.globalAlpha = 1;
+  }
+
+  function frame(now) {
+    const still = motion.matches;
+    const seconds = still ? christmasShow.duration : (now - start) / 1000;
+    const progress = Math.max(0, Math.min(1, (seconds - 0.4) / (christmasShow.assembly + 2.2)));
+    const reveal = progress * progress * (3 - 2 * progress);
+    if (lastAurora === -Infinity || (!still && now - lastAurora >= 44)) {
+      drawAurora(seconds);
+      lastAurora = now;
+    }
+    context.drawImage(background, 0, 0, width, height);
+    context.globalAlpha = 0.16 + reveal * 0.84;
+    context.globalCompositeOperation = 'screen';
+    context.drawImage(aurora, 0, 0, width, height);
+    const crown = (seconds - christmasShow.crown) / 3.25;
+    if (crown > 0 && crown < 1) {
+      context.globalAlpha = Math.sin(crown * Math.PI) ** 2 * 0.43;
+      context.drawImage(aurora, 0, 0, width, height);
+    }
+    context.globalCompositeOperation = 'source-over';
+    context.globalAlpha = 1;
+    drawStars(seconds, 0.43 + reveal * 0.57);
+    if (!still) drawMeteor(seconds);
+    context.drawImage(terrain, 0, 0, width, height);
+    drawWater(seconds, reveal);
+    if (snowEnabled) drawSnow(seconds, 0.30 + reveal * 0.70);
+
+    const v = context.createRadialGradient(width * 0.53, height * 0.47, height * 0.23, width * 0.49, height * 0.46, Math.hypot(width * 0.58, height * 0.69));
+    v.addColorStop(0, 'rgba(2,4,12,0)');
+    v.addColorStop(0.57, 'rgba(2,4,12,.17)');
+    v.addColorStop(1, 'rgba(2,4,12,.76)');
+    context.fillStyle = v;
+    context.fillRect(0, 0, width, height);
+    if (reveal < 1) {
+      context.fillStyle = `rgba(2,4,11,${(1 - reveal) * 0.47})`;
+      context.fillRect(0, 0, width, height);
+    }
+    if (!still) request = requestAnimationFrame(frame);
+  }
+
+  function draw() {
+    cancelAnimationFrame(request);
+    request = 0;
+    frame(performance.now());
+  }
+
+  function resize() {
+    width = canvas.clientWidth || window.innerWidth;
+    height = canvas.clientHeight || window.innerHeight;
+    pixelScale = Math.min(1.6, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(width * pixelScale));
+    canvas.height = Math.max(1, Math.round(height * pixelScale));
+    context.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
+    const reducedScale = Math.min(0.7, 730 / width, 520 / height);
+    curtain.width = aurora.width = Math.max(1, Math.round(width * reducedScale));
+    curtain.height = aurora.height = Math.max(1, Math.round(height * reducedScale));
+    paintBackground();
+    paintTerrain();
+    lastAurora = -Infinity;
+    draw();
+  }
+
+  function updateMotion() {
+    lastAurora = -Infinity;
+    draw();
+  }
+
+  window.addEventListener('resize', resize);
+  motion.addEventListener('change', updateMotion);
+  resize();
+
+  return {
+    replay(at = performance.now()) {
+      start = at;
+      lastAurora = -Infinity;
+      draw();
+    },
+    setSnow(enabled) {
+      snowEnabled = Boolean(enabled);
+      if (motion.matches) draw();
+    },
+    destroy() {
+      cancelAnimationFrame(request);
+      window.removeEventListener('resize', resize);
+      motion.removeEventListener('change', updateMotion);
+    },
+  };
+};
+  </script>
+  <script>
+(() => {
+  "use strict";
+
+  const TAU = Math.PI * 2;
+  const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+  const MAX_SHELLS = 6;
+  const range = (low, high) => low + Math.random() * (high - low);
+  const clamp = (value, low = 0, high = 1) => Math.min(high, Math.max(low, value));
+  const ink = (color, alpha = 1) => `rgb(${color} / ${alpha})`;
+
+  const willow = {
+    core: "255 249 222", light: "255 220 142", color: "255 164 61", dark: "213 76 21",
+    gravity: 0.164, drag: 1.53, squash: 0.73, petals: 0, lifetime: 3.42,
+    rings: [
+      { count: 104, spread: 1.17, jitter: 0.18, tail: 0.55, weight: 1.3, tone: "color" },
+      { count: 57, spread: 0.87, jitter: 0.21, tail: 0.50, weight: 1.1, tone: "light" },
+      { count: 35, spread: 0.58, jitter: 0.24, tail: 0.41, weight: 0.9, tone: "light" },
+    ],
+  };
+  const chrysanthemum = {
+    core: "247 252 255", light: "166 226 255", color: "82 165 255", dark: "50 80 240",
+    gravity: 0.084, drag: 1.78, squash: 0.98, petals: 0, lifetime: 2.83,
+    rings: [
+      { count: 97, spread: 1.13, jitter: 0.095, tail: 0.43, weight: 1.28, tone: "light" },
+      { count: 63, spread: 0.85, jitter: 0.14, tail: 0.36, weight: 1.05, tone: "color" },
+      { count: 37, spread: 0.53, jitter: 0.20, tail: 0.29, weight: 0.92, tone: "light" },
+    ],
+  };
+  const peony = {
+    core: "250 235 255", light: "209 158 255", color: "107 112 255", dark: "89 49 217",
+    inner: "108 253 229", gravity: 0.104, drag: 1.75, squash: 0.92, petals: 7, lifetime: 3.06,
+    rings: [
+      { count: 99, spread: 1.14, jitter: 0.12, tail: 0.45, weight: 1.2, tone: "light" },
+      { count: 64, spread: 0.82, jitter: 0.15, tail: 0.43, weight: 1.12, tone: "inner" },
+      { count: 37, spread: 0.52, jitter: 0.20, tail: 0.33, weight: 0.85, tone: "light" },
+    ],
+  };
+  const paletteCycle = [willow, chrysanthemum, peony];
+  const finale = [
+    [[1, 0, willow, 0.68, 0.79, 0.34, 1.03], [-1, 0.40, chrysanthemum, 0.70, 0.22, 0.24, 0.90]],
+    [[-1, 0, peony, 0.64, 0.21, 0.32, 1.06], [1, 0.24, chrysanthemum, 0.66, 0.84, 0.23, 0.79]],
+    [[-1, 0, willow, 0.67, 0.23, 0.23, 1.02], [1, 0.11, peony, 0.67, 0.78, 0.26, 1.07], [1, 0.56, chrysanthemum, 0.66, 0.88, 0.41, 0.64]],
+  ];
+
+  window.createChristmasFireworks = function (canvas) {
+    const context = canvas.getContext("2d");
+    if (!context) return { burst() {}, replay() {}, finish() {}, destroy() {} };
+
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const rockets = [];
+    const blooms = [];
+    let width = 0;
+    let height = 0;
+    let ratio = 1;
+    let frame = 0;
+    let timer = 0;
+    let glowTimer = 0;
+    let sequence = 0;
+    let manualSequence = 0;
+    let reducedGlow = false;
+
+    function clear() {
+      context.clearRect(0, 0, width, height);
+    }
+
+    function halo(x, y, radius, color, alpha) {
+      const glow = context.createRadialGradient(x, y, 0, x, y, radius);
+      glow.addColorStop(0, ink(color, 0.94));
+      glow.addColorStop(0.24, ink(color, 0.49));
+      glow.addColorStop(0.57, ink(color, 0.14));
+      glow.addColorStop(1, ink(color, 0));
+      context.globalAlpha = alpha;
+      context.fillStyle = glow;
+      context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+
+    function dot(x, y, radius) {
+      context.moveTo(x + radius, y);
+      context.arc(x, y, radius, 0, TAU);
+    }
+
+    function drawReducedGlow() {
+      clear();
+      context.globalCompositeOperation = "lighter";
+      const radius = Math.min(width * 0.15, height * 0.145);
+      if (radius <= 0) return;
+      const positions = [[width * 0.22, height * 0.30, willow], [width * 0.79, height * 0.26, peony]];
+      for (const [x, y, palette] of positions) {
+        halo(x, y, radius, palette.color, 0.31);
+        context.globalAlpha = 0.63;
+        context.fillStyle = ink(palette.light);
+        context.beginPath();
+        for (let index = 0; index < 72; index++) {
+          const angle = index * GOLDEN_ANGLE;
+          const distance = Math.sqrt((index + 1) / 72) * radius;
+          dot(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance, index % 4 ? 0.85 : 1.3);
+        }
+        context.fill();
+      }
+      context.globalAlpha = 1;
+    }
+
+    function resize() {
+      const nextWidth = canvas.clientWidth;
+      const nextHeight = canvas.clientHeight;
+      const nextRatio = Math.min(window.devicePixelRatio || 1, 1.65);
+      if (nextWidth === width && nextHeight === height && ratio === nextRatio) return;
+      width = nextWidth;
+      height = nextHeight;
+      ratio = nextRatio;
+      canvas.width = Math.max(1, Math.round(width * ratio));
+      canvas.height = Math.max(1, Math.round(height * ratio));
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.lineCap = "round";
+      if (reducedGlow) drawReducedGlow();
+    }
+
+    function launch(side, delay, palette, seconds, atX, atY, size = 1) {
+      if (width < 1 || height < 1 || rockets.length + blooms.length >= MAX_SHELLS) return;
+      const narrow = width < height * 0.93;
+      const radius = Math.min(height * 0.195, width * (narrow ? 0.191 : 0.168)) * size;
+      const targetX = width * (atX ?? (side === -1 ? range(0.17, 0.25) : range(0.77, 0.85)));
+      const x = clamp(targetX, radius * 0.84, width - radius * 0.84);
+      const y = height * (atY ?? range(0.22, 0.34));
+      const begin = performance.now() + delay * 1000;
+      rockets.push({
+        x, y, radius, palette, seconds, begin,
+        end: begin + seconds * 1000,
+        origin: x + side * width * range(0.054, 0.10),
+        bottom: height * (narrow ? 0.75 : 0.83),
+        drift: side * radius * 0.13,
+      });
+      if (!frame) frame = requestAnimationFrame(tick);
+    }
+
+    function drawRocket(rocket, age) {
+      const { x, y, origin, bottom, drift, palette, seconds } = rocket;
+      const progress = value => 1 - (1 - clamp(value / seconds)) ** 1.63;
+      const t = progress(age);
+      const previous = progress(age - 0.15);
+      const bend = Math.sin(t * Math.PI) * drift;
+      const headX = origin + (x - origin) * t + bend;
+      const headY = bottom + (y - bottom) * t;
+      const tailX = origin + (x - origin) * previous + Math.sin(previous * Math.PI) * drift;
+      const tailY = bottom + (y - bottom) * previous;
+      if (t > previous) {
+        const streak = context.createLinearGradient(tailX, tailY, headX, headY);
+        streak.addColorStop(0, ink(palette.color, 0));
+        streak.addColorStop(0.48, ink(palette.color, 0.48));
+        streak.addColorStop(1, ink(palette.core, 0.96));
+        context.globalAlpha = 0.9;
+        context.lineWidth = 2;
+        context.strokeStyle = streak;
+        context.beginPath();
+        context.moveTo(tailX, tailY);
+        context.lineTo(headX, headY);
+        context.stroke();
+      }
+      halo(headX, headY, 14, palette.color, 0.68);
+      context.globalAlpha = 0.96;
+      context.fillStyle = ink(palette.core);
+      context.beginPath();
+      dot(headX, headY, 1.65);
+      context.fill();
+    }
+
+    function explode(rocket) {
+      const { palette, radius } = rocket;
+      const rings = [];
+      const specks = [];
+      const angleOffset = range(0, TAU);
+      const detail = width < 580 ? 0.68 : 1;
+      palette.rings.forEach((ring, ringIndex) => {
+        const points = [];
+        const count = Math.round(ring.count * detail);
+        for (let index = 0; index < count; index++) {
+          const localAngle = index / count * TAU + range(-0.023, 0.023);
+          const angle = localAngle + angleOffset + ringIndex * 0.048;
+          const lobe = palette.petals ? 1 + 0.16 * Math.cos(localAngle * palette.petals + ringIndex * 0.8) : 1;
+          const distance = radius * ring.spread * lobe * range(1 - ring.jitter, 1 + ring.jitter);
+          const dx = Math.cos(angle) * distance;
+          const dy = Math.sin(angle) * distance * palette.squash;
+          points.push({ dx, dy, size: range(0.75, 1.43), life: palette.lifetime * range(0.71, 1) });
+          if (index % 3 !== 0) continue;
+          const release = range(0.58, 1.31);
+          const atRelease = 1 - Math.exp(-release * palette.drag);
+          const startX = dx * atRelease;
+          const startY = dy * atRelease + radius * palette.gravity * release * release;
+          for (let grain = 0; grain < 2; grain++) {
+            specks.push({
+              startX, startY,
+              dx: Math.cos(angle + range(-0.8, 0.8)) * radius * range(0.09, 0.28),
+              dy: Math.sin(angle + range(-0.8, 0.8)) * radius * range(0.08, 0.23),
+              age: release + range(0, 0.12),
+              life: range(0.62, 1.19),
+              phase: range(0, TAU),
+              size: range(0.61, 1.45),
+            });
+          }
+        }
+        rings.push({ ...ring, points });
+      });
+      blooms.push({ ...rocket, rings, specks });
+    }
+
+    function buildTrail(bloom, ring, age, drawHeads) {
+      const { x, y, radius, palette } = bloom;
+      const drag = palette.drag;
+      const gravity = radius * palette.gravity;
+      const trail = Math.max(0, age - ring.tail);
+      const mid = (trail + age) * 0.5;
+      const headTravel = 1 - Math.exp(-age * drag);
+      const tailTravel = 1 - Math.exp(-trail * drag);
+      const guideTravel = 2 * (1 - Math.exp(-mid * drag)) - (headTravel + tailTravel) * 0.5;
+      const headFall = gravity * age * age;
+      const tailFall = gravity * trail * trail;
+      const guideFall = 2 * gravity * mid * mid - (headFall + tailFall) * 0.5;
+      context.beginPath();
+      for (const point of ring.points) {
+        if (age > point.life) continue;
+        const tipX = x + point.dx * headTravel;
+        const tipY = y + point.dy * headTravel + headFall;
+        if (drawHeads) {
+          dot(tipX, tipY, point.size * ring.weight);
+        } else {
+          context.moveTo(x + point.dx * tailTravel, y + point.dy * tailTravel + tailFall);
+          context.quadraticCurveTo(x + point.dx * guideTravel, y + point.dy * guideTravel + guideFall, tipX, tipY);
+        }
+      }
+    }
+
+    function drawBloom(bloom, age) {
+      const { x, y, radius, palette } = bloom;
+      const emerge = clamp(age / 0.105);
+      const charge = emerge * Math.exp(-age * 1.78);
+      if (age < 1.51) {
+        halo(x, y + radius * 0.07 * age, radius * (0.53 + age * 0.56), palette.color, charge * 0.64);
+        halo(x, y, radius * (0.22 + age * 0.23), palette.light, charge * 0.74);
+      }
+      const fade = emerge * (1 - age / palette.lifetime) ** 0.96;
+      for (const ring of bloom.rings) {
+        buildTrail(bloom, ring, age, false);
+        context.strokeStyle = ink(palette[ring.tone]);
+        context.globalAlpha = fade * 0.22;
+        context.lineWidth = ring.weight * 4.25;
+        context.stroke();
+        context.globalAlpha = fade * 0.87;
+        context.lineWidth = ring.weight * 1.37;
+        context.stroke();
+        buildTrail(bloom, ring, age, true);
+        context.fillStyle = ink(palette.core);
+        context.globalAlpha = fade * 0.96;
+        context.fill();
+      }
+      drawCrackle(bloom, age);
+    }
+
+    function drawCrackle(bloom, age) {
+      if (age < 0.55 || age > 2.75) return;
+      const batches = [[], [], []];
+      for (const speck of bloom.specks) {
+        const t = age - speck.age;
+        if (t < 0 || t > speck.life) continue;
+        const wave = Math.sin(t * 16 + speck.phase);
+        const power = clamp(t / 0.08) * (1 - t / speck.life) * (0.74 + wave * 0.25);
+        if (power < 0.12) continue;
+        batches[Math.min(2, Math.floor(power * 3))].push([speck, t]);
+      }
+      for (let index = 0; index < batches.length; index++) {
+        const flecks = batches[index];
+        if (!flecks.length) continue;
+        context.globalAlpha = 0.28 + index * 0.24;
+        context.fillStyle = ink(index === 0 ? bloom.palette.light : bloom.palette.core);
+        context.beginPath();
+        for (const [speck, t] of flecks) {
+          const x = bloom.x + speck.startX + speck.dx * t;
+          const y = bloom.y + speck.startY + speck.dy * t + bloom.radius * 0.15 * t * t;
+          dot(x, y, speck.size * (1 - t * 0.35));
+        }
+        context.fill();
+      }
+    }
+
+    function tick(now) {
+      clear();
+      context.globalCompositeOperation = "lighter";
+      for (let index = rockets.length - 1; index >= 0; index--) {
+        const rocket = rockets[index];
+        if (now >= rocket.end) {
+          if (now - rocket.end < 450) explode(rocket);
+          rockets.splice(index, 1);
+        } else if (now >= rocket.begin) {
+          drawRocket(rocket, (now - rocket.begin) / 1000);
+        }
+      }
+      for (let index = blooms.length - 1; index >= 0; index--) {
+        const bloom = blooms[index];
+        const age = (now - bloom.end) / 1000;
+        if (age < bloom.palette.lifetime) drawBloom(bloom, age);
+        else blooms.splice(index, 1);
+      }
+      context.globalAlpha = 1;
+      frame = rockets.length || blooms.length ? requestAnimationFrame(tick) : 0;
+    }
+
+    function queueAmbient(delay) {
+      if (motion.matches) return;
+      timer = window.setTimeout(() => {
+        if (!document.hidden) {
+          const side = sequence % 2 === 0 ? 1 : -1;
+          launch(side, 0, paletteCycle[sequence % paletteCycle.length], range(0.60, 0.76), undefined, undefined, range(0.8, 0.92));
+          sequence += 1;
+        }
+        queueAmbient(range(3900, 4900));
+      }, delay);
+    }
+
+    function queueFinale(at, beat = 0) {
+      if (motion.matches) return;
+      if (beat >= finale.length || beat >= christmasShow.fireworks.length) {
+        queueAmbient(5300);
+        return;
+      }
+      const cueAt = at + christmasShow.fireworks[beat] * 1000;
+      timer = window.setTimeout(() => {
+        if (!document.hidden && performance.now() - cueAt < 900) {
+          for (const shell of finale[beat]) launch(...shell);
+        }
+        queueFinale(at, beat + 1);
+      }, Math.max(0, cueAt - performance.now()));
+    }
+
+    function stop() {
+      window.clearTimeout(timer);
+      window.clearTimeout(glowTimer);
+      cancelAnimationFrame(frame);
+      frame = 0;
+      reducedGlow = false;
+      rockets.length = 0;
+      blooms.length = 0;
+      clear();
+    }
+
+    function replay(at = performance.now()) {
+      stop();
+      sequence = 0;
+      queueFinale(at);
+    }
+
+    function finish() {
+      stop();
+      queueAmbient(2850);
+    }
+
+    function burst() {
+      if (motion.matches) {
+        window.clearTimeout(glowTimer);
+        reducedGlow = true;
+        drawReducedGlow();
+        glowTimer = window.setTimeout(() => {
+          reducedGlow = false;
+          clear();
+        }, 850);
+        return;
+      }
+      const available = MAX_SHELLS - rockets.length - blooms.length;
+      if (available < 1) return;
+      const first = manualSequence++ % 2 === 0 ? chrysanthemum : peony;
+      launch(-1, 0, first, 0.37, 0.21, 0.28, 1.09);
+      launch(1, 0.14, willow, 0.48, 0.79, 0.32, 1.12);
+    }
+
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    motion.addEventListener("change", finish);
+    resize();
+
+    return {
+      burst,
+      replay,
+      finish,
+      destroy() {
+        stop();
+        observer.disconnect();
+        motion.removeEventListener("change", finish);
+      },
+    };
+  };
+})();
+  </script>
+  <script>
+(function () {
+  "use strict";
+
+  const beat = 0.625;
+  const bars = [
+    { bass: 50, chord: [62, 66, 69, 76], melody: [[0, 74], [0.75, 78], [1.5, 81], [2.5, 76]] },
+    { bass: 49, chord: [61, 64, 69, 71], melody: [[0, 73], [1, 76], [1.75, 81], [2.5, 83]] },
+    { bass: 47, chord: [59, 62, 66, 69], melody: [[0, 81], [0.75, 78], [1.5, 74], [2.5, 78]] },
+    { bass: 43, chord: [55, 62, 66, 71], melody: [[0, 79], [1, 78], [1.75, 74], [2.5, 71]] },
+    { bass: 52, chord: [59, 62, 64, 67], melody: [[0, 76], [0.75, 79], [1.5, 83], [2.5, 78]] },
+    { bass: 45, chord: [57, 64, 67, 73], melody: [[0, 76], [1, 74], [1.75, 73], [2.5, 76]] },
+    { bass: 42, chord: [57, 61, 64, 66], melody: [[0, 78], [0.75, 81], [1.5, 85], [2.5, 83]] },
+    { bass: 47, chord: [59, 62, 66, 69], melody: [[0, 81], [1, 78], [2, 74]] },
+    { bass: 43, chord: [55, 62, 66, 71], melody: [[0, 83], [0.75, 86], [1.5, 90], [2.5, 86]] },
+    { bass: 42, chord: [57, 62, 66, 76], melody: [[0, 88], [1, 86], [1.75, 81], [2.5, 78]] },
+    { bass: 52, chord: [59, 62, 64, 67], melody: [[0, 83], [0.75, 79], [1.5, 76], [2.5, 74]] },
+    { bass: 45, chord: [57, 61, 64, 67], melody: [[0, 73], [1, 76], [1.75, 79], [2.5, 83]] },
+    { bass: 47, chord: [59, 62, 66, 69], melody: [[0, 81], [0.75, 78], [1.5, 74], [2.5, 78]] },
+    { bass: 43, chord: [55, 62, 66, 71], melody: [[0, 79], [1, 83], [1.75, 86], [2.5, 83]] },
+    { bass: 45, chord: [57, 62, 66, 69], melody: [[0, 81], [0.75, 78], [1.5, 76], [2.5, 74]] },
+    { bass: 45, chord: [57, 61, 64, 67], melody: [[0, 73], [0.75, 76], [1.5, 69], [2.25, 73]] },
+  ];
+
+  // Time, chord tone, octaves, volume, decay and stereo placement.
+  const accents = {
+    seed: [
+      [0, 0, 1, 0.044, 1.6, "center"],
+      [0.16, 2, 1, 0.021, 1.25, "right"],
+    ],
+    gather: [
+      [0, 0, 1, 0.025, 1.7, "left"],
+      [0.18, 1, 1, 0.027, 1.7, "center"],
+      [0.31, 2, 1, 0.031, 1.8, "right"],
+      [0.42, 3, 1, 0.028, 1.9, "left"],
+    ],
+    crown: [
+      [0, 0, 0, 0.037, 2.6, "center"],
+      [0.036, 2, 0, 0.028, 2.45, "left"],
+      [0.085, 1, 1, 0.038, 2.25, "right"],
+      [0.15, 2, 1, 0.043, 2.2, "center"],
+      [0.27, 3, 1, 0.032, 1.85, "left"],
+    ],
+    fireworks: [
+      [0, 2, 1, 0.034, 1.0, "right"],
+      [0.072, 0, 2, 0.025, 0.95, "left"],
+      [0.16, 3, 1, 0.020, 1.3, "center"],
+    ],
+  };
+
+  function makeRoom(context) {
+    const length = Math.round(context.sampleRate * 1.25);
+    const impulse = context.createBuffer(2, length, context.sampleRate);
+    let seed = 75829;
+    for (let channel = 0; channel < 2; channel++) {
+      const samples = impulse.getChannelData(channel);
+      let filtered = 0;
+      for (let index = 0; index < length; index++) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        const noise = seed / 2147483648 - 1;
+        filtered = filtered * 0.59 + noise * 0.41;
+        const fadeIn = Math.min(1, index / (context.sampleRate * 0.018));
+        samples[index] = filtered * fadeIn * (1 - index / length) ** 3.6;
+      }
+    }
+    return impulse;
+  }
+
+  function ring(context, output, note, time, volume, length, brightness) {
+    const frequency = 440 * 2 ** ((note - 69) / 12);
+    const partials = [
+      [1, 1, 1],
+      [2.002, 0.30 * brightness, 0.60],
+      [3.013, 0.075 * brightness, 0.28],
+      [4.19, 0.065 * brightness, 0.16],
+    ];
+    for (const [ratio, strength, duration] of partials) {
+      const oscillator = context.createOscillator();
+      const envelope = context.createGain();
+      const end = time + length * duration;
+      oscillator.frequency.value = frequency * ratio;
+      envelope.gain.setValueAtTime(0.0001, time);
+      envelope.gain.exponentialRampToValueAtTime(volume * strength, time + 0.012);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, end);
+      oscillator.connect(envelope).connect(output);
+      oscillator.start(time);
+      oscillator.stop(end);
+    }
+  }
+
+  function voice(context, output, pan) {
+    if (!context.createStereoPanner) return output;
+    const panner = context.createStereoPanner();
+    panner.pan.value = pan;
+    panner.connect(output);
+    return panner;
+  }
+
+  function roomMix(context, level) {
+    const mix = context.createGain();
+    const room = context.createConvolver();
+    const wet = context.createGain();
+    room.buffer = makeRoom(context);
+    wet.gain.value = level;
+    mix.connect(context.destination);
+    mix.connect(room).connect(wet).connect(context.destination);
+    return mix;
+  }
+
+  async function renderMusic(OfflineContext) {
+    const sampleRate = 44100;
+    const loopFrames = bars.length * 3 * beat * sampleRate;
+    const context = new OfflineContext(2, loopFrames + 4 * sampleRate, sampleRate);
+    const mix = roomMix(context, 0.23);
+
+    const melody = voice(context, mix, 0.08);
+    const left = voice(context, mix, -0.24);
+    const right = voice(context, mix, 0.24);
+    bars.forEach((bar, index) => {
+      const time = index * 3 * beat;
+      ring(context, mix, bar.bass, time, 0.037, 1.9, 0.30);
+      bar.chord.forEach((note, chordIndex) => {
+        const output = chordIndex % 2 === 0 ? left : right;
+        ring(context, output, note, time + (0.43 + chordIndex * 0.66) * beat, 0.030, 1.4, 0.54);
+      });
+      for (const [offset, note] of bar.melody) {
+        const volume = (offset === 0 ? 0.108 : 0.088) * (note > 84 ? 0.88 : 1);
+        ring(context, melody, note, time + offset * beat, volume, 1.6, 0.86);
+      }
+    });
+
+    const rendered = await context.startRendering();
+    const loop = context.createBuffer(2, loopFrames, sampleRate);
+    for (let channel = 0; channel < 2; channel++) {
+      const source = rendered.getChannelData(channel);
+      const samples = loop.getChannelData(channel);
+      samples.set(source.subarray(0, loopFrames));
+      // Preserve the last notes and their reverb as the first bar starts again.
+      for (let frame = loopFrames; frame < source.length; frame++) {
+        samples[frame - loopFrames] += source[frame];
+      }
+    }
+    return loop;
+  }
+
+  window.createChristmasMusic = function () {
+    let context;
+    let track;
+    let source;
+    let cueVoices;
+    let startedAt = 0;
+    let wantsPlayback = false;
+    const lastAccent = new Map();
+
+    return {
+      async play() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const OfflineContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        if (!AudioContext || !OfflineContext) throw new Error("Web Audio is unavailable");
+        wantsPlayback = true;
+        context ??= new AudioContext();
+        const ready = context.resume();
+        track ??= renderMusic(OfflineContext).catch((error) => {
+          track = undefined;
+          throw error;
+        });
+        const [, buffer] = await Promise.all([ready, track]);
+        if (!wantsPlayback || source) return;
+        source = context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(context.destination);
+        startedAt = context.currentTime;
+        source.start(startedAt);
+      },
+
+      async pause() {
+        wantsPlayback = false;
+        if (context) await context.suspend();
+      },
+
+      cue(kind) {
+        if (!wantsPlayback || !source || context.state !== "running") return;
+        const notes = accents[kind];
+        if (!Array.isArray(notes)) return;
+        const now = context.currentTime;
+        if (now - (lastAccent.get(kind) ?? -Infinity) < 0.28) return;
+        lastAccent.set(kind, now);
+
+        if (!cueVoices) {
+          const airy = roomMix(context, 0.39);
+          cueVoices = {
+            left: voice(context, airy, -0.38),
+            center: airy,
+            right: voice(context, airy, 0.38),
+          };
+        }
+        for (const [offset, degree, octaves, volume, decay, placement] of notes) {
+          const time = now + 0.025 + offset;
+          const bar = bars[Math.floor((time - startedAt) / (3 * beat)) % bars.length];
+          const note = bar.chord[degree] + octaves * 12;
+          ring(context, cueVoices[placement], note, time, volume, decay, 0.65);
+        }
+      },
+    };
+  };
+})();
+  </script>
+  <script>
+    (() => {
+      const element = id => document.getElementById(id);
+      const theater = element('theater');
+      const notice = element('notice');
+      const letter = element('letter');
+      const musicToggle = element('music-toggle');
+      const snowToggle = element('snow-toggle');
+      const fullscreen = element('fullscreen');
+      const skip = element('skip-intro');
+      const replay = element('replay');
+      const scene = element('scene');
+      const world = element('scene-world');
+      const treeCanvas = element('tree');
+      const flightDust = element('flight-dust');
+      const dust = flightDust.getContext('2d');
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      const tree = window.createChristmasTree(treeCanvas);
+      const sky = window.createChristmasSky(element('sky'));
+      const fireworks = window.createChristmasFireworks(element('fireworks'));
+      const introTimers = [];
+      const showDuration = christmasShow.duration * 1000;
+      let music;
+      let cameraFrame = 0;
+      let cameraBounds;
+
+      theater.style.setProperty('--title-cue', `${christmasShow.greeting}s`);
+      theater.style.setProperty('--show-duration', `${christmasShow.duration}s`);
+
+      function measureCamera() {
+        const width = world.clientWidth;
+        const height = world.clientHeight;
+        cameraBounds = {
+          width, height,
+          treeWidth: treeCanvas.clientWidth,
+          treeHeight: treeCanvas.clientHeight,
+          treeTop: treeCanvas.offsetTop,
+        };
+        if (dust) {
+          const ratio = Math.min(window.devicePixelRatio || 1, 1.25);
+          flightDust.width = Math.max(1, Math.round(width * ratio));
+          flightDust.height = Math.max(1, Math.round(height * ratio));
+          dust.setTransform(ratio, 0, 0, ratio, 0, 0);
+          dust.lineCap = 'round';
+        }
+      }
+
+      function drawFlightDust(seconds, progress, intensity, width, height) {
+        if (!dust) return;
+        dust.clearRect(0, 0, width, height);
+        for (let index = 0; index < 34; index++) {
+          const depth = (index * 0.618034 + seconds * (0.073 + index % 6 * 0.013)) % 1;
+          const angle = index * 2.399963 + progress * 0.49;
+          const x = Math.cos(angle) * (0.28 + depth * 0.42) * width;
+          const y = Math.sin(angle) * (0.24 + depth * 0.39) * height;
+          const screenX = width * 0.51 + x;
+          const screenY = height * (0.51 + 0.12 * progress) + y;
+          const length = intensity * (0.004 + depth ** 2 * 0.015);
+          dust.globalAlpha = intensity * Math.sin(depth * Math.PI) ** 1.4 * (0.21 + index % 3 * 0.06);
+          dust.strokeStyle = index % 5 === 0 ? '#fff1cf' : '#c1e7ff';
+          dust.lineWidth = 0.65 + depth * 1.4;
+          dust.beginPath();
+          dust.moveTo(screenX - x * length, screenY - (y + height * 0.3) * length);
+          dust.lineTo(screenX, screenY);
+          dust.stroke();
+        }
+        dust.globalAlpha = 1;
+      }
+
+      function resetCamera() {
+        cancelAnimationFrame(cameraFrame);
+        cameraFrame = 0;
+        world.style.removeProperty('transform');
+        scene.classList.remove('is-flying');
+        if (dust && flightDust.width > 1) {
+          flightDust.width = 1;
+          flightDust.height = 1;
+        }
+      }
+
+      function followComet(at) {
+        measureCamera();
+        scene.classList.add('is-flying');
+        const exitAt = christmasShow.lake - 0.42;
+        const pullbackDuration = 2.22;
+        const { ease, progressAt, position } = christmasComet;
+
+        function frame(now) {
+          const seconds = Math.max(0, (now - at) / 1000);
+          if (motion.matches || seconds >= exitAt + pullbackDuration) {
+            resetCamera();
+            return;
+          }
+
+          const { width, height, treeWidth, treeHeight, treeTop } = cameraBounds;
+          const progress = progressAt(seconds);
+          const head = position(progress, treeWidth, treeHeight);
+          const ahead = position(progressAt(seconds + 0.20), treeWidth, treeHeight);
+          const travel = ease(seconds / 1.46) * (1 - ease((seconds - exitAt) / pullbackDuration));
+          const zoom = 1 + travel * ((width < 710 ? 0.64 : 0.88) + Math.sin(progress * Math.PI) * 0.18);
+          const roll = travel * Math.sin(progress * Math.PI * 2.4 + 0.34) * 0.052;
+          const cos = Math.cos(roll);
+          const sin = Math.sin(roll);
+
+          const aimX = width * (0.025 + 0.032 * Math.sin(progress * Math.PI * 2));
+          const aimY = height * (0.145 - progress * 0.29);
+          const leadX = head.x + (ahead.x - head.x) * 0.42;
+          const leadY = treeTop + head.y + (ahead.y - head.y) * 0.42;
+          const desiredX = leadX - (aimX * cos + aimY * sin) / zoom;
+          const desiredY = leadY - (aimY * cos - aimX * sin) / zoom;
+
+          // Clamp the camera in world coordinates so rotated viewport corners stay inside the sky.
+          const halfWidth = (width * cos + height * Math.abs(sin)) / (2 * zoom);
+          const halfHeight = (height * cos + width * Math.abs(sin)) / (2 * zoom);
+          const centerX = Math.max(halfWidth, Math.min(width - halfWidth, desiredX));
+          const centerY = Math.max(halfHeight, Math.min(height - halfHeight, desiredY));
+          const a = cos * zoom;
+          const b = sin * zoom;
+          const x = width / 2 - a * centerX + b * centerY;
+          const y = height / 2 - b * centerX - a * centerY;
+          world.style.transform = `matrix(${a}, ${b}, ${-b}, ${a}, ${x}, ${y})`;
+          drawFlightDust(seconds, progress, travel, width, height);
+          cameraFrame = requestAnimationFrame(frame);
+        }
+
+        frame(at);
+      }
+
+      function clearIntro() {
+        for (const timer of introTimers) clearTimeout(timer);
+        introTimers.length = 0;
+        resetCamera();
+        theater.classList.remove('is-playing');
+        if (document.activeElement === skip) replay.focus();
+      }
+
+      function skipIntro() {
+        clearIntro();
+        const settledAt = performance.now() - showDuration;
+        tree.replay(settledAt);
+        sky.replay(settledAt);
+        fireworks.finish();
+      }
+
+      function playIntro() {
+        if (motion.matches) {
+          skipIntro();
+          return;
+        }
+        clearIntro();
+        void theater.offsetWidth;
+        const at = performance.now();
+        tree.replay(at);
+        sky.replay(at);
+        fireworks.replay(at);
+        theater.classList.add('is-playing');
+        followComet(at);
+        const accents = [
+          ['seed', 0.85],
+          ['gather', christmasShow.assembly + 0.6],
+          ['crown', christmasShow.crown + 0.35],
+          ...christmasShow.fireworks.map(time => ['fireworks', time + 0.7]),
+        ];
+        for (const [kind, seconds] of accents) {
+          const cueAt = at + seconds * 1000;
+          introTimers.push(setTimeout(() => {
+            if (!document.hidden && performance.now() - cueAt < 750) music?.cue(kind);
+          }, Math.max(0, cueAt - performance.now())));
+        }
+        introTimers.push(setTimeout(clearIntro, Math.max(0, at + showDuration - performance.now())));
+      }
+
+      replay.addEventListener('click', playIntro);
+      skip.addEventListener('click', skipIntro);
+      window.addEventListener('resize', () => {
+        if (cameraFrame) measureCamera();
+      });
+      motion.addEventListener('change', () => {
+        if (motion.matches && theater.classList.contains('is-playing')) skipIntro();
+      });
+
+      element('burst').addEventListener('click', () => {
+        fireworks.burst();
+        tree.burst();
+        music?.cue('fireworks');
+      });
+
+      snowToggle.addEventListener('click', () => {
+        const showSnow = snowToggle.getAttribute('aria-pressed') !== 'true';
+        snowToggle.setAttribute('aria-pressed', String(showSnow));
+        sky.setSnow(showSnow);
+      });
+
+      musicToggle.addEventListener('click', async () => {
+        if (musicToggle.getAttribute('aria-busy') === 'true') return;
+        const playing = musicToggle.getAttribute('aria-pressed') === 'true';
+        notice.textContent = '';
+        musicToggle.setAttribute('aria-busy', 'true');
+        try {
+          music ??= window.createChristmasMusic();
+          await (playing ? music.pause() : music.play());
+          musicToggle.setAttribute('aria-pressed', String(!playing));
+        } catch {
+          notice.textContent = 'Music is unavailable in this browser.';
+        } finally {
+          musicToggle.removeAttribute('aria-busy');
+        }
+      });
+
+      fullscreen.addEventListener('click', async () => {
+        notice.textContent = '';
+        try {
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else await document.documentElement.requestFullscreen();
+        } catch {
+          notice.textContent = 'Press F11 to enter full screen.';
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        const active = Boolean(document.fullscreenElement);
+        fullscreen.setAttribute('aria-pressed', String(active));
+        fullscreen.querySelector('.label').textContent = active ? 'Exit Full Screen' : 'Full Screen';
+      });
+
+      element('open-letter').addEventListener('click', () => letter.showModal());
+      letter.addEventListener('click', event => {
+        if (event.target !== letter) return;
+        const { top, right, bottom, left } = letter.getBoundingClientRect();
+        if (event.clientX < left || event.clientX > right || event.clientY < top || event.clientY > bottom) letter.close();
+      });
+      playIntro();
+    })();
+  </script>
+</body>
+</html>
